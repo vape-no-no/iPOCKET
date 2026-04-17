@@ -35,7 +35,7 @@ function initNotes() {
   body.appendChild(listPanel);
 
   const editorPanel = document.createElement('div');
-  editorPanel.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .32s cubic-bezier(.34,1.56,.64,1);';
+  editorPanel.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;background:#050508;transform:translateX(100%);transition:transform .32s cubic-bezier(.34,1.56,.64,1);';
   body.appendChild(editorPanel);
 
   /* ── Editor contents ── */

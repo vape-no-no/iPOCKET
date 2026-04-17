@@ -243,9 +243,16 @@ function initWeather() {
           p => fetchW(p.coords.latitude, p.coords.longitude, null),
           e => {
             let msg = 'Could not get location.';
-            if (e.code === 1) msg = 'Location access is off. Enable it in Settings → Privacy → Location Services → Safari, then try again. Or just search below.';
-            else if (e.code === 2) msg = 'Location unavailable right now. Try searching instead.';
-            else if (e.code === 3) msg = 'Location request timed out. Try searching instead.';
+            if (e.code === 1) {
+              // In PWA mode the permission dialog never appears — give targeted help
+              msg = isStandalone
+                ? 'Location doesn\'t work in home screen mode. Open iPOCKET in Safari instead, allow location there, then save to home screen again. Or just search below.'
+                : 'Location access is off. Go to Settings → Privacy → Location Services → Safari → Allow. Then tap Use My Location again.';
+            } else if (e.code === 2) {
+              msg = 'Location unavailable right now. Try searching instead.';
+            } else if (e.code === 3) {
+              msg = 'Location request timed out. Try searching instead.';
+            }
             showManual(msg);
           },
           { timeout:12000, enableHighAccuracy:false, maximumAge:60000 }
@@ -307,15 +314,24 @@ function initWeather() {
     setTimeout(() => inp.focus(), 300);
   };
 
-  /* ── On open: try geolocation, but skip straight to manual if it fails ── */
-  if (navigator.geolocation) {
+  /* ── On open: try geolocation.
+     EXCEPTION: when running as a PWA (saved to home screen), iOS gives the
+     app a standalone browsing context that does NOT inherit Safari's location
+     permission — the prompt never fires and the request silently times out.
+     Detect standalone mode and skip straight to manual search instead. ── */
+  const isStandalone = window.navigator.standalone === true
+    || window.matchMedia('(display-mode: standalone)').matches;
+
+  if (isStandalone) {
+    // PWA mode: location API is unreliable — skip auto-request entirely
+    showManual('Running as a home screen app. Tap "Use My Location" or search your city below.');
+  } else if (navigator.geolocation) {
     loading('Getting your location…');
     navigator.geolocation.getCurrentPosition(
       p => fetchW(p.coords.latitude, p.coords.longitude, null),
       e => {
-        // Any failure → show manual search immediately, no scary message
         const msg = e.code === 1
-          ? 'Location access is off. Enable it in Settings → Privacy → Location Services → Safari, then tap "Use My Location". Or just search for your city below.'
+          ? 'Location access is off. Enable it in Settings → Privacy → Location Services → Safari, then tap "Use My Location". Or just search below.'
           : '';
         showManual(msg);
       },
