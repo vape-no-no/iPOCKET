@@ -25,6 +25,7 @@ const APPS = [
   { id:'reaction',    name:'Reaction',    ico:'⚡', col:'#fff9c4',  group:'games' },
   { id:'colorgame',   name:'Colors',      ico:'🎨', col:'#e1bee7',  group:'games' },
   { id:'g2048',       name:'2048',        ico:'🟦', col:'#edc22e',  group:'games' },
+  { id:'pacman',      name:'Pac-Man',     ico:'👾', col:'#ffd700',  group:'games' },
 
   // 📱 Device
   { id:'deviceinfo',  name:'Device',      ico:'📊', col:'#ff6d6d',  group:'device' },
@@ -70,6 +71,7 @@ const APP_MAP = {
   deviceinfo:  () => initDeviceInfo(),
   sports:      () => initSports(),
   casino:      () => initCasino(),
+  pacman:      () => initPacman(),
 };
 
 /* ── HOME DATE ────────────────────────────────────────────────── */
