@@ -13,6 +13,7 @@ const APPS = [
   { id:'weather',     name:'Weather',     ico:'🌤️', col:'#4dd0e1', group: null },
   { id:'timer',       name:'Timer',       ico:'⏱️', col:'#69ff47', group: null },
   { id:'notes',       name:'Notes',       ico:'📝', col:'#ffd740', group: null },
+  { id:'sports',      name:'Sports',      ico:'🏆', col:'#ff9800', group: null },
 
   // 🎮 Games
   { id:'snake',       name:'Snake',       ico:'🐍', col:'#69ff47',  group:'games' },
@@ -66,6 +67,7 @@ const APP_MAP = {
   gyro:        () => initGyro(),
   visualizer:  () => initVisualizer(),
   deviceinfo:  () => initDeviceInfo(),
+  sports:      () => initSports(),
 };
 
 /* ── HOME DATE ────────────────────────────────────────────────── */
