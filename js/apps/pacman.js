@@ -66,6 +66,41 @@ function initPacman() {
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
   ];
 
+  /* ── Second maze for level 2+ ── */
+  const BASE2 = [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,2,2,2,2,2,1,2,2,2,2,2,2,1,1,2,2,2,2,2,2,2,1,2,2,2,2,1],
+    [1,2,1,1,1,2,1,2,1,1,1,2,2,1,1,2,2,1,1,1,2,1,1,2,1,1,2,1],
+    [1,3,1,1,1,2,1,2,1,1,1,2,2,1,1,2,2,1,1,1,2,1,1,2,1,1,3,1],
+    [1,2,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,2,1],
+    [1,2,2,2,2,2,1,2,1,1,2,1,1,1,1,1,1,2,1,1,2,1,2,2,2,2,2,1],
+    [1,1,1,1,1,2,1,2,1,1,2,1,1,1,1,1,1,2,1,1,2,1,2,1,1,1,2,1],
+    [1,1,1,1,1,2,1,2,2,2,2,2,2,1,1,2,2,2,2,2,2,1,2,1,1,1,2,1],
+    [1,1,1,1,1,2,1,1,1,1,0,1,0,1,1,0,1,0,1,1,1,1,2,1,1,1,1,1],
+    [1,1,1,1,1,2,1,1,1,1,0,1,0,1,1,0,1,0,1,1,1,1,2,1,1,1,1,1],
+    [1,1,1,1,1,2,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,2,1,1,1,1,1],
+    [1,1,1,1,1,2,1,1,0,1,1,4,4,4,4,4,4,1,1,0,1,1,2,1,1,1,1,1],
+    [1,1,1,1,1,2,1,1,0,1,4,4,4,4,4,4,4,4,1,0,1,1,2,1,1,1,1,1],
+    [1,1,1,1,1,2,1,1,0,1,4,4,4,4,4,4,4,4,1,0,1,1,2,1,1,1,1,1],
+    [0,0,0,0,0,2,0,0,0,1,4,4,4,4,4,4,4,4,1,0,0,0,2,0,0,0,0,0],
+    [1,1,1,1,1,2,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,2,1,1,1,1,1],
+    [1,1,1,1,1,2,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,2,1,1,1,1,1],
+    [1,1,1,1,1,2,1,1,0,1,1,1,0,1,1,0,1,1,1,0,1,1,2,1,1,1,1,1],
+    [1,1,1,1,1,2,2,2,2,1,1,1,0,1,1,0,1,1,1,2,2,2,2,1,1,1,1,1],
+    [1,2,2,2,2,2,1,1,2,2,2,2,2,1,1,2,2,2,2,2,1,1,2,2,2,2,2,1],
+    [1,2,1,1,1,2,1,1,1,1,1,2,2,1,1,2,2,1,1,1,1,1,2,1,1,1,2,1],
+    [1,2,1,1,1,2,1,1,1,1,1,2,2,1,1,2,2,1,1,1,1,1,2,1,1,1,2,1],
+    [1,3,2,2,1,2,2,2,2,2,2,2,2,0,0,2,2,2,2,2,2,2,2,2,1,2,2,3],
+    [1,1,1,2,1,2,1,1,2,1,1,1,1,1,1,1,1,1,1,2,1,1,2,1,1,2,1,1],
+    [1,1,1,2,1,2,1,1,2,1,1,1,1,1,1,1,1,1,1,2,1,1,2,1,1,2,1,1],
+    [1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,1],
+    [1,2,1,1,1,1,1,2,1,1,1,1,2,1,1,2,1,1,1,1,2,1,1,1,1,1,2,1],
+    [1,2,1,1,1,1,1,2,1,1,1,1,2,1,1,2,1,1,1,1,2,1,1,1,1,1,2,1],
+    [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+    [1,2,1,1,2,1,2,1,1,1,1,2,1,1,1,1,2,1,1,1,1,2,1,2,1,1,2,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  ];
+
   /* ── Cell size to fit available space ── */
   const availW = content.offsetWidth;
   const availH = content.offsetHeight - SA.t - 44; // DI + HUD
@@ -95,12 +130,14 @@ function initPacman() {
     if (r < 0 || r >= ROWS) return false;
     const v = maze[r][c];
     if (v === 1) return false;
-    if (ghost && v === 4 && mode !== 'eaten') return false;
+    // Ghosts can only enter house if eaten or in house mode (exiting)
+    if (ghost && v === 4 && mode !== 'eaten' && mode !== 'house') return false;
     return true;
   };
 
   const resetMaze = () => {
-    maze = BASE.map(r => [...r]);
+    const src = (level % 2 === 1) ? BASE : BASE2;
+    maze = src.map(r => [...r]);
     totalPellets = 0;
     maze.forEach(r => r.forEach(v => { if (v === 2 || v === 3) totalPellets++; }));
     pelletsLeft = totalPellets;
@@ -121,13 +158,12 @@ function initPacman() {
   const PAC_SPEED = 8.0; // tiles/sec
 
   const resetPac = () => {
-    // Start at row 23, col 14 (verified open: value 0 or 2)
-    // Find a guaranteed open cell near bottom center
-    pR = 22; pC = 11; // row 22 is the T-bar, col 11 is value 2
-    pNR = pR; pNC = pC;
-    pProg = 1.0;   // start already "arrived" so pickNextPac runs immediately
-    pDR = 0; pDC = 0;
-    qDR = 0; qDC = 1; // initial queue: move right
+    pR = 22; pC = 13; // row 22, col 13 — guaranteed open (value 0 in BASE)
+    pDR = 0; pDC = -1; // start moving left
+    qDR = 0; qDC = -1;
+    pNR = pR; pNC = pC - 1; // moving toward col 12
+    pProg = 0; // start mid-move so animation is visible immediately
+    mouthA = 0.05; mouthDir = 1;
   };
 
   const pickNextPac = () => {
@@ -201,14 +237,17 @@ function initPacman() {
   let ghosts = [];
 
   const initGhosts = () => {
-    ghosts = GHOST_DEF.map(d => ({
-      ...d,
-      r: d.sr, c: d.sc,
-      nr: d.sr, nc: d.sc, prog: 1.0,
-      dr: 0, dc: 0,
-      mode: 'house',
-      houseTimer: d.delay,
-    }));
+    ghosts = GHOST_DEF.map(d => {
+      const g = {
+        ...d,
+        r: d.sr, c: d.sc,
+        nr: d.sr, nc: d.sc - 1, prog: 0, // start moving left inside house
+        dr: 0, dc: -1,
+        mode: 'house',
+        houseTimer: d.delay,
+      };
+      return g;
+    });
   };
 
   /* BFS: returns {dr,dc} of best first step from (sr,sc) toward (tr,tc).
@@ -284,10 +323,25 @@ function initPacman() {
   /* Pick next tile for a ghost that has arrived */
   const pickNextGhost = g => {
     if (g.mode === 'house') {
-      // Move up to exit
-      if (g.r > 11) { g.nr = g.r - 1; g.nc = g.c; g.dr = -1; g.dc = 0; }
-      else { g.mode = 'scatter'; g.nr = g.r; g.nc = g.c; g.dr = 0; g.dc = 0; }
-      g.prog = 0; return;
+      // Move toward exit col 13, then up
+      if (g.c !== 13) {
+        // First center horizontally
+        const dc = g.c < 13 ? 1 : -1;
+        const nc = g.c + dc;
+        if (BASE[g.r] && (BASE[g.r][nc] === 4 || BASE[g.r][nc] === 0)) {
+          g.dr = 0; g.dc = dc; g.nr = g.r; g.nc = nc; g.prog = 0;
+        } else {
+          g.dr = -1; g.dc = 0; g.nr = g.r - 1; g.nc = g.c; g.prog = 0;
+        }
+      } else if (g.r > 11) {
+        // Then move up
+        g.dr = -1; g.dc = 0; g.nr = g.r - 1; g.nc = g.c; g.prog = 0;
+      } else {
+        // Exited
+        g.mode = 'scatter'; g.dr = 0; g.dc = -1;
+        g.nr = g.r; g.nc = g.c - 1; g.prog = 0;
+      }
+      return;
     }
 
     let step;
@@ -417,7 +471,7 @@ function initPacman() {
     const x = (pC + (pNC - pC) * t) * CELL + CELL/2;
     const y = (pR + (pNR - pR) * t) * CELL + CELL/2;
     const r = CELL * .44;
-    let rot = pDC===1?0:pDC===-1?Math.PI:pDY===-1?-Math.PI/2:pDR===1?Math.PI/2:Math.PI;
+    let rot = 0; // default facing right
     if (pDR===1) rot=Math.PI/2;
     if (pDR===-1)rot=-Math.PI/2;
     if (pDC===1) rot=0;
@@ -511,6 +565,7 @@ function initPacman() {
     }
 
     if (gameState === 'dying') {
+      if (dyingTimer <= 0) dyingTimer = 1.2; // initialize on first dying frame
       dyingTimer -= dt;
       if (dyingTimer <= 0) {
         lives--;
@@ -521,7 +576,7 @@ function initPacman() {
     }
 
     drawMaze();
-    if (gameState !== 'over') drawPac();
+    drawPac();
     drawGhosts();
     drawOverlay();
     updateHUD();

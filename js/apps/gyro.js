@@ -77,10 +77,13 @@ function initGyro() {
     }
 
     // Heading needle
-    const headRad = (alpha * Math.PI / 180);
+    // alpha is now the true magnetic heading (degrees, 0=N, clockwise)
+    // The needle must always point to magnetic North = top of screen
+    // So we rotate the whole compass rose by -heading, keeping needle fixed at top
+    const headRad = -(alpha * Math.PI / 180);
     const needleLen = R * .78;
 
-    // North (red) end
+    // North (red) end — needle always points up (toward top of screen = north)
     ctx.save();
     ctx.translate(CX, CY);
     ctx.rotate(headRad);
@@ -121,15 +124,16 @@ function initGyro() {
   const tick = () => {
     drawCompass();
 
-    const headingDeg = (360 - alpha + 360) % 360;
+    // alpha is already true heading: 0=N, 90=E, 180=S, 270=W
+    const headingDeg = Math.round(alpha);
     const DIRS = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
     const dir = DIRS[Math.round(headingDeg / 22.5) % 16];
 
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-    set('gy-a', Math.round(alpha) + '°');
+    set('gy-a', headingDeg + '°');
     set('gy-b', Math.round(beta)  + '°');
     set('gy-g', Math.round(gamma) + '°');
-    set('gy-h', Math.round(headingDeg) + '° ' + dir);
+    set('gy-h', headingDeg + '° ' + dir);
     set('gy-x', Math.round(gamma) + '°');
     set('gy-y', Math.round(beta)  + '°');
 
@@ -139,12 +143,23 @@ function initGyro() {
   /* ── Request permission + start ── */
   const startSensors = () => {
     window.addEventListener('deviceorientation', e => {
-      alpha = e.alpha || 0;
+      // webkitCompassHeading is true magnetic north (iOS Safari).
+      // e.alpha is relative to arbitrary device startup orientation — NOT true north.
+      // Use webkitCompassHeading when available; it is already 0=N, increases clockwise.
+      if (e.webkitCompassHeading != null) {
+        alpha = e.webkitCompassHeading; // true magnetic north heading, 0-360
+      } else if (e.absolute && e.alpha != null) {
+        // On Android with absolute=true, alpha is 0=N clockwise
+        alpha = (360 - e.alpha + 360) % 360;
+      } else {
+        // Relative alpha — not reliable for compass, show with warning
+        alpha = e.alpha || 0;
+      }
       beta  = e.beta  || 0;
       gamma = e.gamma || 0;
       if (!listening) {
         listening = true;
-        statusEl.textContent = 'Sensor active';
+        statusEl.textContent = 'True magnetic north compass';
         tick();
       }
     }, true);
