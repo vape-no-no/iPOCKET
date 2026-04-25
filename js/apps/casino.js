@@ -142,22 +142,23 @@ lobbyPanel.style.transition = ‘transform .32s cubic-bezier(.34,1.56,.64,1)’;
 lobbyPanel.style.transform  = ‘translateX(-100%)’;
 
 ```
-// If slots already built, tear down canvas loop and rebuild so credits are fresh
-if (id === 'slots' && gamePanels[id] && gamePanels[id]._slotCleanup) {
-  gamePanels[id]._slotCleanup();
-  gamePanels[id].innerHTML = '';
-  buildSlots(gamePanels[id]);
-  gamePanels[id].style.transform = 'translateX(0)';
-  return;
-}
-
+// Show panel first so layout is calculated, then build
 if (!gamePanels[id]) {
   gamePanels[id] = makePanel();
-  if (id === 'slots')     buildSlots(gamePanels[id]);
-  if (id === 'hilo')      buildHiLo(gamePanels[id]);
-  if (id === 'blackjack') buildBlackjack(gamePanels[id]);
+} else if (id === 'slots' && gamePanels[id]._slotCleanup) {
+  gamePanels[id]._slotCleanup();
+  gamePanels[id].innerHTML = '';
 }
+
 gamePanels[id].style.transform = 'translateX(0)';
+
+// Build AFTER panel is visible so wrap.clientWidth/Height are real
+requestAnimationFrame(() => {
+  if (id === 'slots' && !gamePanels[id]._slotCleanup) buildSlots(gamePanels[id]);
+  else if (id === 'slots') buildSlots(gamePanels[id]);
+  else if (id === 'hilo' && !gamePanels[id]._hiloBuilt) { buildHiLo(gamePanels[id]); gamePanels[id]._hiloBuilt = true; }
+  else if (id === 'blackjack' && !gamePanels[id]._bjBuilt) { buildBlackjack(gamePanels[id]); gamePanels[id]._bjBuilt = true; }
+});
 ```
 
 };
@@ -185,11 +186,11 @@ wrap.style.cssText = ‘display:flex;flex-direction:column;align-items:center;ju
 
 ```
 const cv = document.createElement('canvas');
-// Use window.innerWidth/innerHeight — always available, even before panel transitions in
-const CW = Math.min(window.innerWidth || 390, 390);
-const CH = Math.min(window.innerHeight || 700, Math.round(CW * 1.72));
+
+const CW = Math.min(wrap.clientWidth || 360, 390);
+const CH = Math.min(wrap.clientHeight || 660, Math.round(CW * 1.72));
 cv.width = CW; cv.height = CH;
-cv.style.cssText = 'display:block;width:' + CW + 'px;height:' + CH + 'px;touch-action:none;-webkit-tap-highlight-color:transparent;';
+cv.style.cssText = 'display:block;touch-action:none;-webkit-tap-highlight-color:transparent;';
 wrap.appendChild(cv);
 const ctx = cv.getContext('2d');
 
@@ -783,8 +784,7 @@ const animLoop = ts => {
   draw();
   rafId = requestAnimationFrame(animLoop);
 };
-// Delay one frame so the panel has been painted before we start drawing
-setTimeout(() => { rafId = requestAnimationFrame(animLoop); }, 50);
+requestAnimationFrame(() => { rafId = requestAnimationFrame(animLoop); });
 
 // -- Input helpers --
 const getPos = e => {
