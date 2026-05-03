@@ -120,8 +120,8 @@ function initTimer() {
     const total = Math.max(0, ms);
     const h = Math.floor(total / 3600000);
     const m = Math.floor((total % 3600000) / 60000);
-    const s = Math.ceil((total % 60000) / 1000);
-    return (h ? `${h}:` : '') + (h ? String(m).padStart(2,'0') : m) + ':' + String(s >= 60 ? 0 : s).padStart(2,'0');
+    const s = Math.floor((total % 60000) / 1000);
+    return (h ? `${h}:` : '') + (h ? String(m).padStart(2,'0') : m) + ':' + String(s).padStart(2,'0');
   };
 
   const renderCD = () => {
@@ -138,7 +138,7 @@ function initTimer() {
           <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="8"/>
           <circle id="cd-arc" cx="100" cy="100" r="88" fill="none" stroke="var(--cyan)" stroke-width="8"
             stroke-linecap="round" stroke-dasharray="553" stroke-dashoffset="${553*(1-pct)}"
-            style="transition:stroke-dashoffset .9s linear,stroke .5s"/>
+            style=""/>
         </svg>
         <div style="display:flex;flex-direction:column;align-items:center;gap:4px;position:relative">
           <div id="cd-disp" style="font-family:'Share Tech Mono',monospace;font-size:clamp(2rem,12vw,3.2rem);color:var(--cyan);letter-spacing:.06em;text-shadow:0 0 30px rgba(0,255,204,.8);">${fmtCD(rem)}</div>
@@ -176,8 +176,6 @@ function initTimer() {
       btns.appendChild(cancelBtn);
       btns.appendChild(pauseBtn);
       panel.appendChild(btns);
-
-      if (cdRunning) startCDTick();
 
     } else {
       // Picker
