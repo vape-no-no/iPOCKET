@@ -155,13 +155,35 @@ function init2048() {
           t.el.style.transition = 'left '+ANIM+'ms ease,top '+ANIM+'ms ease';
           t.el.style.left = p.x + 'px';
           t.el.style.top  = p.y + 'px';
-          if (t.hide) t.el.style.opacity = '0';
+          /* let the absorbed tile slide to dest first, THEN the redraw replaces everything */
         });
         setTimeout(function() {
           grid = newG; score += pts;
           if (score > best) { best = score; try { sessionStorage.setItem('bst2048', best); } catch(e) {} }
           var spawned = addRandom(grid);
+          /* collect merge destination cells for pop animation */
+          var mergeCells = [];
+          dests.forEach(function(d) {
+            if (d.hide) {
+              var to = workToReal(d.wr, d.wto);
+              mergeCells.push(to.r + ',' + to.c);
+            }
+          });
           redraw(spawned);
+          /* apply merge-pop to tiles that just merged */
+          if (mergeCells.length) {
+            var tiles = tileLayer.querySelectorAll('div');
+            tiles.forEach(function(el) {
+              var l = parseFloat(el.style.left), t2 = parseFloat(el.style.top);
+              mergeCells.forEach(function(key) {
+                var parts = key.split(',');
+                var pos = cellPos(parseInt(parts[0]), parseInt(parts[1]));
+                if (Math.abs(l - pos.x) < 2 && Math.abs(t2 - pos.y) < 2) {
+                  el.style.animation = 'tile-merge .22s ease-out';
+                }
+              });
+            });
+          }
           moving = false;
         }, ANIM + 16);
       });

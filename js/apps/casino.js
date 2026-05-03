@@ -1382,6 +1382,26 @@ function initCasino() {
           display:flex;flex-direction:column;
           flex-shrink:0;
         }
+        @keyframes hl-badge-in {
+          0%   { opacity:0; transform:translate(-50%,-50%) scale(.4) rotate(-12deg); }
+          60%  { opacity:1; transform:translate(-50%,-50%) scale(1.15) rotate(3deg); }
+          100% { opacity:1; transform:translate(-50%,-50%) scale(1) rotate(0deg); }
+        }
+        @keyframes hl-badge-out {
+          from { opacity:1; transform:translate(-50%,-50%) scale(1); }
+          to   { opacity:0; transform:translate(-50%,-50%) scale(.7) translateY(-20px); }
+        }
+        @keyframes hl-wrong-shake {
+          0%,100%{ transform:translate(-50%,-50%) rotate(0deg); }
+          20%   { transform:translate(-50%,-50%) rotate(-8deg); }
+          60%   { transform:translate(-50%,-50%) rotate(8deg); }
+        }
+        @keyframes hl-correct-bounce {
+          0%   { transform:translate(-50%,-50%) scale(.5) rotate(-8deg); }
+          55%  { transform:translate(-50%,-50%) scale(1.25) rotate(4deg); }
+          80%  { transform:translate(-50%,-50%) scale(.95) rotate(-2deg); }
+          100% { transform:translate(-50%,-50%) scale(1) rotate(0deg); }
+        }
         .hl-card-back {
           border-radius:16px;
           background:linear-gradient(135deg,#0a1f45 0%,#06142e 50%,#0a1f45 100%);
@@ -1397,7 +1417,7 @@ function initCasino() {
       document.head.appendChild(st);
     }
 
-    const CW=100, CH=148;
+    const CW=108, CH=158;
 
     const cardHTML=(c,anim='hl-deal',delay=0)=>`
       <div class="hl-card" style="width:${CW}px;height:${CH}px;padding:9px;
@@ -1628,24 +1648,65 @@ function initCasino() {
           const tie=next.v===cur.v;
           const correct=!tie&&((choice==='hi'&&next.v>cur.v)||(choice==='lo'&&next.v<cur.v));
 
-          let msg='', type='';
+          let msg='', type='', prize=0;
           if(tie){
-            msg='🤝 Tie — bet returned';type='tie';
+            msg='TIE';type='tie';
             updateWallet(bet,null);streak=0;haptic('light');
           } else if(correct){
             streak++;
-            const p=bet*Math.max(1,streak);
-            updateWallet(p,null);
-            msg=`✓ Correct! +${p}${streak>1?' (×'+streak+' streak)':''}`;type='win';
+            prize=bet*Math.max(1,streak);
+            updateWallet(prize,null);
+            msg='✓ +'+(prize)+(streak>1?' ×'+streak:'');type='win';
             haptic('success');
           } else {
-            msg=`✗ Wrong — it was ${next.r}${next.s} (${next.v})`;type='lose';
+            msg='✗ WRONG';type='lose';
             streak=0;haptic('heavy');
           }
 
           cur=next;
-          render(msg,type);
-          setTimeout(()=>{busy=false;render('',type);},1200);
+
+          /* show animated badge over the cards zone */
+          const zone=wrap.querySelector('.hl-zone');
+          if(zone){
+            /* remove any existing badge */
+            const old=zone.querySelector('.hl-badge');
+            if(old)old.remove();
+            const badge=document.createElement('div');
+            badge.className='hl-badge';
+            const isWin=type==='win', isTie=type==='tie';
+            const bgCol  =isWin?'linear-gradient(135deg,#00c853,#007c31)':isTie?'linear-gradient(135deg,#f9a825,#e65100)':'linear-gradient(135deg,#c62828,#7f0000)';
+            const glowCol=isWin?'rgba(0,200,80,.55)':isTie?'rgba(255,160,0,.55)':'rgba(200,0,0,.55)';
+            const anim   =isWin?'hl-correct-bounce':isTie?'hl-badge-in':'hl-wrong-shake';
+            badge.style.cssText=[
+              'position:absolute',
+              'left:50%','top:50%',
+              'transform:translate(-50%,-50%)',
+              'z-index:20',
+              'pointer-events:none',
+              'font-family:Orbitron,sans-serif',
+              'font-weight:900',
+              'font-size:1.15rem',
+              'letter-spacing:.06em',
+              'color:#fff',
+              'white-space:nowrap',
+              'padding:14px 26px',
+              'border-radius:50px',
+              'background:'+bgCol,
+              'box-shadow:0 6px 28px '+glowCol+',0 0 0 2px rgba(255,255,255,.15)',
+              'animation:'+anim+' .38s cubic-bezier(.34,1.56,.64,1) both',
+            ].join(';');
+            badge.textContent=msg;
+            zone.style.position='relative';
+            zone.appendChild(badge);
+            /* fade out after display */
+            setTimeout(()=>{
+              badge.style.animation='hl-badge-out .3s ease forwards';
+              setTimeout(()=>badge.remove(),320);
+            },900);
+          }
+
+          render('','');
+          setTimeout(()=>{busy=false;render('','');},1250);
         },240);
       };
 
