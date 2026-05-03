@@ -1302,138 +1302,355 @@ function initCasino() {
   const buildHiLo = wrap => {
     const SUITS=['♠','♥','♦','♣'],RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
     const VALUES={A:1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,J:11,Q:12,K:13};
-    const SCOL={'♠':'#1a1a2e','♣':'#1a1a2e','♥':'#aa0000','♦':'#aa0000'};
     let deck=[],cur=null,streak=0,bet=10,busy=false;
 
-    const mkDeck=()=>{deck=[];SUITS.forEach(s=>RANKS.forEach(r=>deck.push({r,s,v:VALUES[r]})));for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}};
-    const drawCard=()=>deck.length?deck.pop():(mkDeck(),deck.pop());
-
-    /* 3D card HTML */
-    const cHTML = (c, hidden) => {
-      if (hidden) return `
-        <div style="width:100px;height:145px;border-radius:16px;perspective:600px;flex-shrink:0;">
-          <div style="width:100%;height:100%;border-radius:16px;
-            background:linear-gradient(135deg,#1a1260 0%,#0a0830 50%,#1a1260 100%);
-            border:2px solid rgba(255,255,255,.12);
-            box-shadow:0 8px 24px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.08);
-            display:flex;align-items:center;justify-content:center;font-size:2.2rem;
-            background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.02) 0,rgba(255,255,255,.02) 1px,transparent 1px,transparent 8px);">
-            🂠
-          </div>
-        </div>`;
-      const isRed = c.s==='♥'||c.s==='♦';
-      return `
-        <div style="width:100px;height:145px;border-radius:16px;perspective:600px;flex-shrink:0;animation:cs-cardentry .4s both;">
-          <div style="width:100%;height:100%;border-radius:16px;
-            background:linear-gradient(160deg,#ffffff 0%,#f4f4f4 60%,#e8e8e8 100%);
-            border:1.5px solid rgba(0,0,0,.15);
-            box-shadow:4px 6px 18px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.9);
-            display:flex;flex-direction:column;padding:9px;
-            color:${SCOL[c.s]};">
-            <div style="font-family:'Orbitron',sans-serif;font-size:1.05rem;font-weight:900;line-height:1.1;text-shadow:${isRed?'0 1px 3px rgba(180,0,0,.3)':'0 1px 3px rgba(0,0,0,.2)'};">
-              ${c.r}<br><span style="font-size:1.3rem;">${c.s}</span>
-            </div>
-            <div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:2.6rem;
-              text-shadow:${isRed?'0 2px 8px rgba(180,0,0,.25)':'0 2px 8px rgba(0,0,0,.15)'};">
-              ${c.s}
-            </div>
-            <div style="font-family:'Orbitron',sans-serif;font-size:1.05rem;font-weight:900;line-height:1.1;align-self:flex-end;transform:rotate(180deg);text-shadow:${isRed?'0 1px 3px rgba(180,0,0,.3)':'0 1px 3px rgba(0,0,0,.2)'};">
-              ${c.r}<br><span style="font-size:1.3rem;">${c.s}</span>
-            </div>
-          </div>
-        </div>`;
+    const mkDeck=()=>{
+      deck=[];
+      SUITS.forEach(s2=>RANKS.forEach(r=>deck.push({r,s:s2,v:VALUES[r]})));
+      for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}
     };
+    const drawCard=()=>deck.length?deck.pop():(mkDeck(),deck.pop());
+    const isRed=c=>c.s==='♥'||c.s==='♦';
 
-    const render = () => {
-      wrap.innerHTML = `
-        <div style="display:flex;flex-direction:column;align-items:center;gap:20px;padding-top:14px;">
+    /* inject styles once */
+    if(!document.getElementById('hl-styles')){
+      const st=document.createElement('style');
+      st.id='hl-styles';
+      st.textContent=`
+        @keyframes hl-deal {
+          from { opacity:0; transform:translateY(-32px) rotate(-5deg) scale(.85); }
+          to   { opacity:1; transform:translateY(0)     rotate(0deg)  scale(1); }
+        }
+        @keyframes hl-flip-out {
+          from { transform:perspective(700px) rotateY(0deg) scale(1); }
+          to   { transform:perspective(700px) rotateY(90deg) scale(.9); }
+        }
+        @keyframes hl-flip-in {
+          from { transform:perspective(700px) rotateY(-90deg) scale(.9); }
+          to   { transform:perspective(700px) rotateY(0deg)  scale(1); }
+        }
+        @keyframes hl-result-pop {
+          from { opacity:0; transform:scale(.75) translateY(8px); }
+          to   { opacity:1; transform:scale(1)   translateY(0); }
+        }
+        @keyframes hl-streak-pulse {
+          0%,100% { transform:scale(1); }
+          50%     { transform:scale(1.18); }
+        }
+        .hl-btn {
+          font-family:'Orbitron',sans-serif;
+          font-weight:900;
+          font-size:.92rem;
+          letter-spacing:.1em;
+          text-transform:uppercase;
+          border:none;
+          border-radius:50px;
+          cursor:pointer;
+          -webkit-tap-highlight-color:transparent;
+          transition:transform .1s, box-shadow .1s, filter .1s;
+          color:#fff;
+          position:relative;
+        }
+        .hl-btn:active {
+          transform:scale(.95) translateY(3px) !important;
+          filter:brightness(.8);
+        }
+        .hl-table {
+          background:
+            radial-gradient(ellipse at 50% 0%,  rgba(0,60,80,.9) 0%, transparent 65%),
+            radial-gradient(ellipse at 50% 100%,rgba(0,20,40,.7) 0%, transparent 60%),
+            linear-gradient(180deg,#020c18 0%,#010810 50%,#000608 100%);
+          border-radius:28px;
+          border:2px solid rgba(0,150,255,.12);
+          box-shadow:
+            0 0 0 1px rgba(0,0,0,.8),
+            0 6px 40px rgba(0,0,0,.9),
+            inset 0 1px 0 rgba(0,180,255,.07),
+            inset 0 -1px 0 rgba(0,0,0,.5);
+        }
+        .hl-zone {
+          background:rgba(0,0,0,.28);
+          border-radius:20px;
+          border:1px solid rgba(255,255,255,.06);
+          box-shadow:inset 0 2px 10px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.04);
+        }
+        .hl-card {
+          border-radius:16px;
+          background:linear-gradient(160deg,#ffffff,#f2f2f2);
+          box-shadow:5px 9px 28px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.9);
+          border:1.5px solid rgba(0,0,0,.12);
+          display:flex;flex-direction:column;
+          flex-shrink:0;
+        }
+        .hl-card-back {
+          border-radius:16px;
+          background:linear-gradient(135deg,#0a1f45 0%,#06142e 50%,#0a1f45 100%);
+          background-image:repeating-linear-gradient(
+            45deg,rgba(255,255,255,.03) 0,rgba(255,255,255,.03) 1px,transparent 1px,transparent 10px
+          );
+          box-shadow:5px 9px 28px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.05);
+          border:1.5px solid rgba(255,255,255,.07);
+          display:flex;align-items:center;justify-content:center;
+          flex-shrink:0;
+        }
+      `;
+      document.head.appendChild(st);
+    }
 
-          <!-- streak -->
-          <div style="display:flex;align-items:center;gap:10px;background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.15);border-radius:50px;padding:8px 20px;box-shadow:0 4px 16px rgba(0,0,0,.4);">
-            <div style="font-family:'Share Tech Mono',monospace;font-size:.58rem;color:rgba(255,215,0,.5);letter-spacing:.14em;text-transform:uppercase;">Streak</div>
-            <div id="hl-st" style="font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:900;color:#ffd700;min-width:30px;text-align:center;text-shadow:0 0 16px rgba(255,215,0,.6);">${streak}</div>
-            ${streak>=3?'<div style="font-size:.8rem;">🔥</div>':''}
-          </div>
+    const CW=100, CH=148;
 
-          <!-- cards on felt -->
-          <div style="width:100%;padding:20px 16px;border-radius:24px;
-            background:radial-gradient(ellipse at 50% 30%,rgba(0,100,0,.5) 0%,transparent 70%),
-              repeating-linear-gradient(45deg,rgba(0,0,0,.04) 0px,rgba(0,0,0,.04) 1px,transparent 1px,transparent 8px),
-              linear-gradient(160deg,#0a3a0a,#062006);
-            border:2px solid rgba(255,215,0,.2);
-            box-shadow:inset 0 2px 12px rgba(0,0,0,.7),0 12px 40px rgba(0,0,0,.8);
-            display:flex;align-items:center;justify-content:center;gap:20px;animation:cs-tableslide .35s both;">
-            <div id="hl-cur">${cHTML(cur,false)}</div>
-            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
-              <div style="font-size:1.8rem;color:rgba(255,255,255,.25);">→</div>
-              <div style="font-family:'Share Tech Mono',monospace;font-size:.52rem;color:rgba(255,255,255,.2);letter-spacing:.1em;">${cur.r}${cur.s} (${cur.v})</div>
+    const cardHTML=(c,anim='hl-deal',delay=0)=>`
+      <div class="hl-card" style="width:${CW}px;height:${CH}px;padding:9px;
+        color:${isRed(c)?'#cc0000':'#0a0a1a'};
+        animation:${anim} .34s ${delay}s both;">
+        <div style="font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:900;line-height:1.15;">
+          ${c.r}<br><span style="font-size:1.25rem;">${c.s}</span>
+        </div>
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;
+          font-size:2.8rem;text-shadow:${isRed(c)?'0 2px 10px rgba(180,0,0,.22)':'0 2px 10px rgba(0,0,0,.14)'};">
+          ${c.s}
+        </div>
+        <div style="font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:900;line-height:1.15;
+          align-self:flex-end;transform:rotate(180deg);">
+          ${c.r}<br><span style="font-size:1.25rem;">${c.s}</span>
+        </div>
+      </div>`;
+
+    const cardBackHTML=()=>`
+      <div class="hl-card-back" style="width:${CW}px;height:${CH}px;animation:hl-deal .34s .06s both;">
+        <div style="width:68%;height:78%;border-radius:10px;border:2px solid rgba(255,255,255,.1);
+          display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:2rem;opacity:.25;">?</span>
+        </div>
+      </div>`;
+
+    const render=(resultMsg='',resultType='')=>{
+      wrap.style.cssText='position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;'+
+        'background:linear-gradient(180deg,#000000 0%,#020c18 40%,#010810 100%);'+
+        'display:flex;flex-direction:column;padding:10px 14px 30px;gap:12px;';
+
+      wrap.innerHTML=`
+        <!-- TABLE -->
+        <div class="hl-table" style="flex:1;display:flex;flex-direction:column;padding:14px;gap:12px;min-height:0;">
+
+          <!-- TOP: streak + value label -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:0 4px;">
+            <div style="font-family:'Share Tech Mono',monospace;font-size:.54rem;
+              letter-spacing:.18em;text-transform:uppercase;color:rgba(0,180,255,.5);">
+              HI-LO
             </div>
-            <div id="hl-nxt">${cHTML(null,true)}</div>
-          </div>
-
-          <div id="hl-res" style="font-family:'Orbitron',sans-serif;font-size:.9rem;font-weight:900;letter-spacing:.1em;min-height:28px;text-align:center;text-shadow:0 2px 8px rgba(0,0,0,.5);"></div>
-
-          <div style="font-family:'Share Tech Mono',monospace;font-size:.56rem;color:rgba(255,255,255,.2);text-align:center;">Streak bonus: ×${Math.max(1,streak)} on next win</div>
-
-          <!-- Hi / Lo buttons -->
-          <div style="display:flex;gap:14px;" id="hl-btns">
-            <button id="hl-lo" class="cs-btn-3d" style="font-family:'Orbitron',sans-serif;font-size:.88rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:linear-gradient(135deg,#0044ee,#002299);border:2px solid #5599ff;padding:18px 36px;border-radius:24px;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 6px 0 #001166,0 8px 24px rgba(0,80,255,.4);">▼ Lower</button>
-            <button id="hl-hi" class="cs-btn-3d" style="font-family:'Orbitron',sans-serif;font-size:.88rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:linear-gradient(135deg,#dd0000,#880000);border:2px solid #ff5555;padding:18px 36px;border-radius:24px;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 6px 0 #440000,0 8px 24px rgba(255,0,0,.4);">▲ Higher</button>
-          </div>
-
-          <!-- bet chips -->
-          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;">
-            <button id="hl-bd" class="cs-chip" style="background:radial-gradient(circle at 40% 38%,#e05555,#992222);box-shadow:0 5px 0 #551111,inset 0 2px 0 rgba(255,255,255,.25);">−</button>
-            <div style="text-align:center;background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.15);border-radius:14px;padding:8px 18px;box-shadow:0 4px 12px rgba(0,0,0,.4);">
-              <div style="font-family:'Share Tech Mono',monospace;font-size:.5rem;color:rgba(255,215,0,.45);text-transform:uppercase;letter-spacing:.14em;">Bet</div>
-              <div id="hl-bet" style="font-family:'Orbitron',sans-serif;font-size:1.05rem;font-weight:900;color:#ffd700;text-shadow:0 0 12px rgba(255,215,0,.4);">${bet}</div>
+            <!-- streak badge -->
+            <div style="display:flex;align-items:center;gap:8px;
+              background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.18);
+              border-radius:50px;padding:6px 16px;
+              box-shadow:0 0 16px rgba(255,215,0,.1);
+              ${streak>=3?'animation:hl-streak-pulse .8s infinite;':''}">
+              <span style="font-family:'Share Tech Mono',monospace;font-size:.54rem;
+                color:rgba(255,215,0,.45);letter-spacing:.12em;text-transform:uppercase;">Streak</span>
+              <span style="font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:900;
+                color:#ffd700;text-shadow:0 0 14px rgba(255,215,0,.6);min-width:22px;text-align:center;">
+                ${streak}${streak>=3?' 🔥':''}
+              </span>
             </div>
-            <button id="hl-bu" class="cs-chip" style="background:radial-gradient(circle at 40% 38%,#55e055,#229922);box-shadow:0 5px 0 #115511,inset 0 2px 0 rgba(255,255,255,.25);">+</button>
-            ${streak>0?`<button id="hl-cash" class="cs-btn-3d" style="font-family:'Orbitron',sans-serif;font-size:.62rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:#050508;background:linear-gradient(135deg,#ffe033,#cc9900);border:none;padding:12px 22px;border-radius:18px;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 5px 0 #664400,0 0 20px rgba(255,215,0,.5);">Cash Out ×${streak}</button>`:''}
           </div>
 
-        </div>`;
+          <!-- CARDS ZONE -->
+          <div class="hl-zone" style="flex:1;display:flex;align-items:center;justify-content:center;
+            gap:0;padding:20px 12px;position:relative;">
 
-      const setBet = v=>{bet=Math.max(5,Math.min(200,v));document.getElementById('hl-bet').textContent=bet;};
+            <!-- current card -->
+            <div id="hl-cur-wrap" style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+              ${cardHTML(cur)}
+              <div style="font-family:'Share Tech Mono',monospace;font-size:.54rem;
+                color:rgba(255,255,255,.25);letter-spacing:.08em;">
+                ${cur.r}${cur.s} · ${cur.v}
+              </div>
+            </div>
+
+            <!-- arrow + value indicator -->
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;
+              padding:0 18px;flex-shrink:0;">
+              <div id="hl-arrow" style="font-size:2rem;color:rgba(255,255,255,.15);
+                transition:color .3s,transform .3s;user-select:none;">→</div>
+              <div style="font-family:'Share Tech Mono',monospace;font-size:.48rem;
+                color:rgba(255,255,255,.15);text-align:center;line-height:1.6;">
+                Value<br>${cur.v}/13
+              </div>
+            </div>
+
+            <!-- next card placeholder -->
+            <div id="hl-nxt" style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+              ${cardBackHTML()}
+              <div style="font-family:'Share Tech Mono',monospace;font-size:.54rem;
+                color:rgba(255,255,255,.12);letter-spacing:.08em;">Next</div>
+            </div>
+
+          </div>
+
+          <!-- RESULT -->
+          <div id="hl-res" style="min-height:32px;text-align:center;">
+            ${resultMsg?`<span style="font-family:'Orbitron',sans-serif;font-size:.92rem;font-weight:900;
+              letter-spacing:.08em;
+              color:${resultType==='win'?'#00e5ff':resultType==='tie'?'#ffd700':'#ff4d4d'};
+              text-shadow:0 0 18px currentColor;
+              animation:hl-result-pop .28s both;">${resultMsg}</span>`:''}
+          </div>
+
+          <!-- streak bonus line -->
+          <div style="text-align:center;font-family:'Share Tech Mono',monospace;
+            font-size:.5rem;color:rgba(255,255,255,.15);letter-spacing:.06em;">
+            ${streak>0?`Streak bonus active · next win pays ×${streak+1}`:'Streak bonus: wins in a row multiply payout'}
+          </div>
+
+        </div>
+
+        <!-- HI / LO BUTTONS -->
+        <div style="display:flex;gap:10px;" id="hl-btns">
+          <button class="hl-btn" id="hl-lo"
+            style="flex:1;padding:18px 0;
+              background:linear-gradient(135deg,#1565c0,#0d47a1);
+              box-shadow:0 5px 0 #062070,0 6px 22px rgba(0,80,200,.45);">
+            ▼ &nbsp;LOWER
+          </button>
+          <button class="hl-btn" id="hl-hi"
+            style="flex:1;padding:18px 0;
+              background:linear-gradient(135deg,#c62828,#7f0000);
+              box-shadow:0 5px 0 #3e0000,0 6px 22px rgba(200,0,0,.45);">
+            ▲ &nbsp;HIGHER
+          </button>
+        </div>
+
+        <!-- BET ROW + CASH OUT -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;">
+
+          <!-- bet pill -->
+          <div style="display:flex;align-items:center;gap:14px;
+            background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
+            border-radius:50px;padding:9px 20px;
+            box-shadow:0 4px 16px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.05);">
+            <button id="hl-bd"
+              style="width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;
+                -webkit-tap-highlight-color:transparent;
+                background:radial-gradient(circle at 38% 35%,#e05555,#880000);
+                box-shadow:0 4px 0 #440000,0 0 10px rgba(200,0,0,.3);
+                color:#fff;font-size:1.3rem;font-weight:900;
+                display:flex;align-items:center;justify-content:center;
+                transition:transform .1s;"
+              onpointerdown="this.style.transform='scale(.9) translateY(2px)'"
+              onpointerup="this.style.transform=''">−</button>
+            <div style="text-align:center;min-width:64px;">
+              <div style="font-family:'Share Tech Mono',monospace;font-size:.48rem;
+                color:rgba(255,215,0,.4);letter-spacing:.18em;text-transform:uppercase;">BET</div>
+              <div id="hl-bet-disp" style="font-family:'Orbitron',sans-serif;font-size:1.3rem;
+                font-weight:900;color:#ffd700;text-shadow:0 0 14px rgba(255,215,0,.5);">${bet}</div>
+            </div>
+            <button id="hl-bu"
+              style="width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;
+                -webkit-tap-highlight-color:transparent;
+                background:radial-gradient(circle at 38% 35%,#55e077,#117733);
+                box-shadow:0 4px 0 #0a4422,0 0 10px rgba(0,180,80,.3);
+                color:#fff;font-size:1.3rem;font-weight:900;
+                display:flex;align-items:center;justify-content:center;
+                transition:transform .1s;"
+              onpointerdown="this.style.transform='scale(.9) translateY(2px)'"
+              onpointerup="this.style.transform=''">+</button>
+          </div>
+
+          <!-- cash out button — only when streak > 0 -->
+          ${streak>0?`
+            <button id="hl-cash"
+              style="font-family:'Orbitron',sans-serif;font-size:.68rem;font-weight:900;
+                letter-spacing:.1em;text-transform:uppercase;
+                color:#030f08;
+                background:linear-gradient(135deg,#ffe033,#cc9900);
+                border:none;border-radius:50px;padding:12px 22px;cursor:pointer;
+                -webkit-tap-highlight-color:transparent;
+                box-shadow:0 5px 0 #664400,0 0 22px rgba(255,215,0,.45);
+                transition:transform .1s,box-shadow .1s;"
+              onpointerdown="this.style.transform='scale(.95) translateY(2px)';this.style.boxShadow='0 2px 0 #664400,0 0 10px rgba(255,215,0,.3)'"
+              onpointerup="this.style.transform='';this.style.boxShadow='0 5px 0 #664400,0 0 22px rgba(255,215,0,.45)'">
+              💰 Cash Out ×${streak}
+            </button>`:''}
+
+        </div>
+      `;
+
+      /* ── wire up ── */
+      const setBet=v=>{bet=Math.max(5,Math.min(200,v));const el=document.getElementById('hl-bet-disp');if(el)el.textContent=bet;};
       document.getElementById('hl-bd').onclick=()=>{haptic('light');setBet(bet-5);};
       document.getElementById('hl-bu').onclick=()=>{haptic('light');setBet(bet+5);};
 
-      const guess = choice => {
+      const cash=document.getElementById('hl-cash');
+      if(cash)cash.onclick=()=>{
+        haptic('success');
+        const p=bet*streak;
+        updateWallet(p,cash);
+        streak=0;
+        render('💰 Cashed out +'+p,'win');
+        setTimeout(()=>render(),900);
+      };
+
+      const guess=choice=>{
         if(busy)return;
-        if(_casinoCoins<bet){
-          const r=document.getElementById('hl-res');
-          r.style.color='#ff6b6b';r.textContent='Not enough coins!';return;
-        }
+        if(_casinoCoins<bet){render('Not enough coins!','lose');return;}
         busy=true;
         updateWallet(-bet,document.getElementById('hl-btns'));
         haptic('medium');
+
+        /* arrow hint animation */
+        const arrow=document.getElementById('hl-arrow');
+        if(arrow){
+          arrow.textContent=choice==='hi'?'↑':'↓';
+          arrow.style.color=choice==='hi'?'#ff5555':'#4488ff';
+          arrow.style.transform='scale(1.3)';
+        }
+
         const next=drawCard();
 
-        /* flip animation on the next card slot */
-        const nxtEl=document.getElementById('hl-nxt');
-        nxtEl.style.transition='transform .22s';
-        nxtEl.style.transform='perspective(600px) rotateY(90deg) scale(.9)';
-        setTimeout(()=>{
-          nxtEl.innerHTML=cHTML(next,false);
-          nxtEl.style.transform='perspective(600px) rotateY(0deg) scale(1)';
-        },220);
+        /* flip out current next-slot */
+        const nxtWrap=document.getElementById('hl-nxt');
+        if(nxtWrap){
+          const inner=nxtWrap.querySelector('.hl-card-back,.hl-card');
+          if(inner){inner.style.animation='hl-flip-out .2s forwards';}
+        }
 
         setTimeout(()=>{
-          const res=document.getElementById('hl-res');
+          /* swap next card in */
+          if(nxtWrap){
+            nxtWrap.innerHTML=`
+              ${cardHTML(next,'hl-flip-in',0)}
+              <div style="font-family:'Share Tech Mono',monospace;font-size:.54rem;
+                color:rgba(255,255,255,.25);letter-spacing:.08em;margin-top:8px;">
+                ${next.r}${next.s} · ${next.v}
+              </div>`;
+          }
+
           const tie=next.v===cur.v;
           const correct=!tie&&((choice==='hi'&&next.v>cur.v)||(choice==='lo'&&next.v<cur.v));
-          if(tie){res.style.color='#ffd700';res.textContent='🤝 Tie — bet returned!';updateWallet(bet,res);streak=0;haptic('light');}
-          else if(correct){streak++;const p=bet*Math.max(1,streak);updateWallet(p,res);res.style.color='#ffd700';res.textContent=`✓ Correct! +${p} (×${Math.max(1,streak)} streak)`;haptic('success');}
-          else{res.style.color='#ff6b6b';res.textContent=`✗ Wrong! ${next.r}${next.s} (${next.v})`;streak=0;haptic('heavy');}
+
+          let msg='', type='';
+          if(tie){
+            msg='🤝 Tie — bet returned';type='tie';
+            updateWallet(bet,null);streak=0;haptic('light');
+          } else if(correct){
+            streak++;
+            const p=bet*Math.max(1,streak);
+            updateWallet(p,null);
+            msg=`✓ Correct! +${p}${streak>1?' (×'+streak+' streak)':''}`;type='win';
+            haptic('success');
+          } else {
+            msg=`✗ Wrong — it was ${next.r}${next.s} (${next.v})`;type='lose';
+            streak=0;haptic('heavy');
+          }
+
           cur=next;
-          setTimeout(()=>{busy=false;render();},1100);
-        },500);
+          render(msg,type);
+          setTimeout(()=>{busy=false;render('',type);},1200);
+        },240);
       };
 
       document.getElementById('hl-hi').onclick=()=>guess('hi');
       document.getElementById('hl-lo').onclick=()=>guess('lo');
-      const ce=document.getElementById('hl-cash');
-      if(ce)ce.onclick=()=>{haptic('success');const p=bet*streak;updateWallet(p,ce);streak=0;render();};
     };
 
     mkDeck();cur=drawCard();render();
