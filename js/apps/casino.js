@@ -1665,48 +1665,52 @@ function initCasino() {
 
           cur=next;
 
-          /* show animated badge over the cards zone */
-          const zone=wrap.querySelector('.hl-zone');
-          if(zone){
-            /* remove any existing badge */
-            const old=zone.querySelector('.hl-badge');
-            if(old)old.remove();
-            const badge=document.createElement('div');
-            badge.className='hl-badge';
-            const isWin=type==='win', isTie=type==='tie';
-            const bgCol  =isWin?'linear-gradient(135deg,#00c853,#007c31)':isTie?'linear-gradient(135deg,#f9a825,#e65100)':'linear-gradient(135deg,#c62828,#7f0000)';
-            const glowCol=isWin?'rgba(0,200,80,.55)':isTie?'rgba(255,160,0,.55)':'rgba(200,0,0,.55)';
-            const anim   =isWin?'hl-correct-bounce':isTie?'hl-badge-in':'hl-wrong-shake';
-            badge.style.cssText=[
-              'position:absolute',
-              'left:50%','top:50%',
-              'transform:translate(-50%,-50%)',
-              'z-index:20',
-              'pointer-events:none',
-              'font-family:Orbitron,sans-serif',
-              'font-weight:900',
-              'font-size:1.15rem',
-              'letter-spacing:.06em',
-              'color:#fff',
-              'white-space:nowrap',
-              'padding:14px 26px',
-              'border-radius:50px',
-              'background:'+bgCol,
-              'box-shadow:0 6px 28px '+glowCol+',0 0 0 2px rgba(255,255,255,.15)',
-              'animation:'+anim+' .38s cubic-bezier(.34,1.56,.64,1) both',
-            ].join(';');
-            badge.textContent=msg;
-            zone.style.position='relative';
-            zone.appendChild(badge);
-            /* fade out after display */
-            setTimeout(()=>{
-              badge.style.animation='hl-badge-out .3s ease forwards';
-              setTimeout(()=>badge.remove(),320);
-            },900);
-          }
+          /* ── animated result badge ──
+             Appended to a FIXED overlay div that lives outside wrap.innerHTML
+             so render() rebuilding the DOM doesn't destroy it.               */
+          const badgeHost=document.createElement('div');
+          badgeHost.style.cssText=[
+            'position:fixed','inset:0','pointer-events:none','z-index:9999',
+            'display:flex','align-items:center','justify-content:center',
+          ].join(';');
 
+          const badge=document.createElement('div');
+          const isWin=type==='win', isTie=type==='tie';
+          const bgCol  =isWin?'linear-gradient(135deg,#00c853,#007c31)'
+                        :isTie?'linear-gradient(135deg,#f9a825,#e65100)'
+                             :'linear-gradient(135deg,#c62828,#7f0000)';
+          const glowCol=isWin?'rgba(0,200,80,.6)'
+                        :isTie?'rgba(255,160,0,.6)'
+                             :'rgba(200,0,0,.6)';
+          const anim   =isWin?'hl-correct-bounce'
+                        :isTie?'hl-badge-in'
+                             :'hl-wrong-shake';
+          const icon   =isWin?'✓':isTie?'🤝':'✗';
+          badge.style.cssText=[
+            'font-family:Orbitron,sans-serif',
+            'font-weight:900',
+            'font-size:1.3rem',
+            'letter-spacing:.06em',
+            'color:#fff',
+            'white-space:nowrap',
+            'padding:18px 34px',
+            'border-radius:50px',
+            'background:'+bgCol,
+            'box-shadow:0 8px 40px '+glowCol+',0 0 0 2px rgba(255,255,255,.18),inset 0 1px 0 rgba(255,255,255,.25)',
+            'animation:'+anim+' .4s cubic-bezier(.34,1.56,.64,1) both',
+          ].join(';');
+          badge.textContent=icon+' '+msg;
+          badgeHost.appendChild(badge);
+          document.body.appendChild(badgeHost);
+
+          /* rebuild DOM immediately — badge is fixed so survives */
           render('','');
-          setTimeout(()=>{busy=false;render('','');},1250);
+
+          /* fade badge out then remove host */
+          setTimeout(()=>{
+            badge.style.animation='hl-badge-out .3s ease forwards';
+            setTimeout(()=>{ badgeHost.remove(); busy=false; },320);
+          },950);
         },240);
       };
 
