@@ -51,14 +51,55 @@ function initTimer() {
     btns.appendChild(startBtn);
     panel.appendChild(btns);
 
-    // Lap list
+    // Lap list - Apple style
     if (swLaps.length) {
       const lapWrap = document.createElement('div');
-      lapWrap.style.cssText = 'width:100%;max-width:340px;max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;';
+      lapWrap.style.cssText = 'width:100%;max-width:420px;overflow-y:auto;max-height:280px;-webkit-overflow-scrolling:touch;';
+
+      // Find fastest and slowest to color them
+      // swLaps stores cumulative times; compute individual lap durations
+      const lapTimes = swLaps.map((t,i) => {
+        // parse "M:SS.cs" or "H:MM:SS.cs" back to ms
+        const parse = str => {
+          const parts = str.split(':');
+          let ms = 0;
+          if(parts.length === 3) {
+            ms = parseInt(parts[0])*3600000 + parseInt(parts[1])*60000;
+            ms += parseFloat(parts[2])*1000;
+          } else {
+            ms = parseInt(parts[0])*60000 + parseFloat(parts[1])*1000;
+          }
+          return ms;
+        };
+        const cur2 = parse(t);
+        const prev = i > 0 ? parse(swLaps[i-1]) : 0;
+        return cur2 - prev;
+      });
+      const fastest = Math.min(...lapTimes);
+      const slowest = Math.max(...lapTimes);
+      const allSame = fastest === slowest;
+
       swLaps.slice().reverse().forEach((lap, i) => {
+        const lapIdx = swLaps.length - 1 - i; // actual index in array
+        const lapNum = swLaps.length - i;
+        const lapDur = lapTimes[lapIdx];
+        const isFastest = !allSame && lapDur === fastest;
+        const isSlowest = !allSame && lapDur === slowest;
+        const col = isFastest ? '#30d158' : isSlowest ? '#ff453a' : 'rgba(255,255,255,0.85)';
+
+        // Format individual lap duration
+        const fmtLap = ms => {
+          const m2 = Math.floor(ms/60000);
+          const sec = Math.floor((ms%60000)/1000);
+          const cs2 = Math.floor((ms%1000)/10);
+          return m2 + ':' + String(sec).padStart(2,'0') + '.' + String(cs2).padStart(2,'0');
+        };
+
         const row = document.createElement('div');
-        row.style.cssText = 'display:flex;justify-content:space-between;padding:8px 14px;background:rgba(255,255,255,.04);border-radius:10px;font-family:"Share Tech Mono",monospace;font-size:.7rem;color:var(--dim);';
-        row.innerHTML = `<span>Lap ${swLaps.length - i}</span><span style="color:var(--text)">${lap}</span>`;
+        row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.08);';
+        row.innerHTML = `
+          <span style="font-family:'Share Tech Mono',monospace;font-size:.85rem;color:${col};min-width:60px;">Lap ${lapNum}</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:.85rem;color:${col};letter-spacing:.04em;">${fmtLap(lapDur)}</span>`;
         lapWrap.appendChild(row);
       });
       panel.appendChild(lapWrap);
@@ -229,6 +270,7 @@ function initTimer() {
         cdTarget = Date.now() + totalMs;
         cdRunning = true;
         renderCD();
+        startCDTick();
       };
       panel.appendChild(startBtn);
     }

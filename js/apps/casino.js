@@ -1138,6 +1138,7 @@ function initCasino() {
       } else {
         winAmount=0; resultMsg='No Win';
         resultCol='rgba(255,180,80,0.50)'; haptic('light');
+        coinLayer.style.pointerEvents='none';
       }
     };
 
@@ -1147,6 +1148,7 @@ function initCasino() {
       const trayCX=rect.left+rect.width*0.5;
       const trayCY=rect.top+rect.height*0.92;
       coinLayer.style.pointerEvents='all';
+      setTimeout(()=>{ coinLayer.style.pointerEvents='none'; },3400);
       for(let i=0;i<count;i++){
         setTimeout(()=>{
           const coin=document.createElement('div');
