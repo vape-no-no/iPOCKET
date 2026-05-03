@@ -1142,7 +1142,15 @@ function initCasino() {
     };
 
     /* ── game logic ── */
-    const symAt = i => STRIP[(Math.round(reels[i].offset)%SL+SL)%SL];
+    const symAt = i => {
+      // When stopped, use the exact targetOffset set during spin (always integer)
+      // Fall back to rounded offset only if somehow still moving
+      const r = reels[i];
+      const idx = r.stopped && r.targetOffset >= 0
+        ? (Math.round(r.targetOffset) % SL + SL) % SL
+        : (Math.round(r.offset) % SL + SL) % SL;
+      return STRIP[idx];
+    };
 
     const evalResult = () => {
       const s=[symAt(0),symAt(1),symAt(2)];
@@ -1271,10 +1279,8 @@ function initCasino() {
       credits-=BET;_addCoins(-BET);updateWallet(0,null);
       coinInserted=false;spinning=true;resultMsg='';winAmount=0;
       const s0=Math.floor(Math.random()*SL);
-      let s1=Math.floor(Math.random()*SL);
-      if(Math.random()<0.70&&STRIP[s1]===STRIP[s0]){let att=0;while(STRIP[s1]===STRIP[s0]&&att++<30)s1=Math.floor(Math.random()*SL);}
-      let s2=Math.floor(Math.random()*SL);
-      if(Math.random()<0.70&&STRIP[s2]===STRIP[s1]){let att=0;while(STRIP[s2]===STRIP[s1]&&att++<30)s2=Math.floor(Math.random()*SL);}
+      const s1=Math.floor(Math.random()*SL);
+      const s2=Math.floor(Math.random()*SL);
       reels.forEach((r,i)=>{r.stopped=false;r.speed=0;r.targetOffset=-1;setTimeout(()=>{r.targetOffset=[s0,s1,s2][i];},1300+i*950);});
       haptic('medium');
     };
