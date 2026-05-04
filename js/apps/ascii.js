@@ -1,4 +1,4 @@
-/* ════════════ ASCII CAM ════════════ */
+/* ════════════ ASCII CAM + EDGE DETECTION ════════════ */
 function initASCII() {
   const wrap = document.createElement('div');
   wrap.className = 'asc-wrap';
@@ -8,90 +8,266 @@ function initASCII() {
   area.className = 'asc-area';
   wrap.appendChild(area);
 
+  /* ── inject styles ── */
+  if (!document.getElementById('asc-styles')) {
+    const st = document.createElement('style');
+    st.id = 'asc-styles';
+    st.textContent = `
+      .asc-wrap { width:100%;height:100%;display:flex;flex-direction:column;background:#000;overflow:hidden; }
+      .asc-area { flex:1;position:relative;overflow:hidden; }
+      .asc-botbar {
+        flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:10px;
+        padding:10px 14px calc(var(--sb,0px) + 10px);background:#000;
+      }
+      .asc-btn {
+        font-family:'Orbitron',sans-serif;font-size:.58rem;font-weight:700;
+        letter-spacing:.1em;text-transform:uppercase;
+        color:rgba(255,255,255,.5);background:rgba(255,255,255,.06);
+        border:1.5px solid rgba(255,255,255,.1);border-radius:50px;
+        padding:10px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;
+        transition:all .15s;flex-shrink:0;
+      }
+      .asc-btn.active {
+        color:#000;background:#00ffcc;border-color:#00ffcc;
+        box-shadow:0 0 18px rgba(0,255,204,.45);
+      }
+      .asc-btn-snap {
+        font-family:'Orbitron',sans-serif;font-size:.58rem;font-weight:700;
+        letter-spacing:.1em;text-transform:uppercase;
+        color:#000;background:linear-gradient(135deg,#00ffcc,#00cc99);
+        border:none;border-radius:50px;padding:10px 18px;
+        cursor:pointer;-webkit-tap-highlight-color:transparent;
+        box-shadow:0 4px 0 #007744,0 4px 16px rgba(0,255,150,.35);
+        transition:transform .1s,box-shadow .1s;flex-shrink:0;
+      }
+      .asc-btn-snap:active { transform:translateY(3px);box-shadow:0 1px 0 #007744; }
+      .asc-mode-label {
+        position:absolute;top:${typeof SA!=='undefined'?SA.t+10:69}px;left:0;right:0;
+        text-align:center;font-family:'Share Tech Mono',monospace;
+        font-size:.52rem;letter-spacing:.18em;text-transform:uppercase;
+        color:rgba(255,255,255,.25);pointer-events:none;z-index:2;
+      }
+      @keyframes asc-flash { 0%{opacity:.8}100%{opacity:0} }
+    `;
+    document.head.appendChild(st);
+  }
+
   const tb = document.createElement('div');
   tb.className = 'asc-botbar';
-  tb.innerHTML = '<button class="asc-snap" id="asc-snap">📸 Save</button><button class="asc-clr" id="asc-clr">🎨 Color</button>';
+  tb.innerHTML = `
+    <button class="asc-btn-snap" id="asc-snap">📸 Save</button>
+    <button class="asc-btn active" id="asc-ascii">ASCII</button>
+    <button class="asc-btn" id="asc-clr">Color</button>
+    <button class="asc-btn" id="asc-edge">Edge</button>`;
   wrap.appendChild(tb);
+
+  const modeLabel = document.createElement('div');
+  modeLabel.className = 'asc-mode-label';
+  modeLabel.textContent = 'ASCII MODE';
+  area.appendChild(modeLabel);
 
   let stream = null, raf2 = null;
 
   setTimeout(() => {
-    const CW = area.offsetWidth || content.offsetWidth;
+    const CW = area.offsetWidth  || content.offsetWidth;
     const CH = area.offsetHeight || content.offsetHeight - 80;
     const DPR = Math.min(window.devicePixelRatio || 1, 2);
     const FS = 5, CHAR_W = FS * .601, LINE_H = FS * 1.05;
     const COLS = Math.floor(CW / CHAR_W), ROWS = Math.floor(CH / LINE_H);
 
+    /* ── output canvas (full res) ── */
     const ascCV = document.createElement('canvas');
-    ascCV.width = Math.round(CW * DPR);
+    ascCV.width  = Math.round(CW * DPR);
     ascCV.height = Math.round(CH * DPR);
     ascCV.style.cssText = `display:block;width:${CW}px;height:${CH}px;`;
     area.appendChild(ascCV);
-
     const actx = ascCV.getContext('2d');
     actx.scale(DPR, DPR);
 
+    /* ── small sampling canvas (ASCII / Color) ── */
     const sCV = document.createElement('canvas');
     sCV.width = COLS; sCV.height = ROWS;
-    const sCtx = sCV.getContext('2d', { willReadFrequently: true });
+    const sCtx = sCV.getContext('2d', { willReadFrequently:true });
 
-    let colorMode = false;
+    /* ── edge detection canvas (native resolution) ── */
+    const eCV = document.createElement('canvas');
+    const EW = 320, EH = Math.round(320 * CH / CW);
+    eCV.width = EW; eCV.height = EH;
+    const eCtx = eCV.getContext('2d', { willReadFrequently:true });
+
     const RAMP = ' .`-_:,;=+*!?|/\\()[]{}^~%$#@';
+
+    /* ── mode: 'ascii' | 'color' | 'edge' ── */
+    let mode = 'ascii';
 
     const vid = document.createElement('video');
     Object.assign(vid, { autoplay:true, playsInline:true, muted:true });
     vid.style.display = 'none';
     document.body.appendChild(vid);
 
+    /* ═══════════════════════════════════════════════
+       Sobel edge detection
+       1. Draw frame to small canvas (EW × EH)
+       2. Read pixels → greyscale
+       3. Run 3×3 Sobel kernel → magnitude
+       4. Threshold → draw white pixels on black
+    ═══════════════════════════════════════════════ */
+    const edgeFrame = () => {
+      eCtx.drawImage(vid, 0, 0, EW, EH);
+      const src = eCtx.getImageData(0, 0, EW, EH);
+      const d   = src.data;
+      const out = eCtx.createImageData(EW, EH);
+      const od  = out.data;
+
+      /* greyscale lookup */
+      const grey = new Float32Array(EW * EH);
+      for (let i = 0; i < EW * EH; i++) {
+        const p = i * 4;
+        grey[i] = d[p]*.299 + d[p+1]*.587 + d[p+2]*.114;
+      }
+
+      /* Sobel kernels Gx Gy */
+      const Gx = [-1,0,1,-2,0,2,-1,0,1];
+      const Gy = [-1,-2,-1,0,0,0,1,2,1];
+      const THRESH = 40; // lower = more edges, higher = fewer
+
+      for (let y = 1; y < EH-1; y++) {
+        for (let x = 1; x < EW-1; x++) {
+          let gx = 0, gy = 0;
+          for (let ky = -1; ky <= 1; ky++) {
+            for (let kx = -1; kx <= 1; kx++) {
+              const g = grey[(y+ky)*EW + (x+kx)];
+              const ki = (ky+1)*3 + (kx+1);
+              gx += Gx[ki] * g;
+              gy += Gy[ki] * g;
+            }
+          }
+          const mag   = Math.sqrt(gx*gx + gy*gy);
+          const idx   = (y*EW + x) * 4;
+          const v     = mag > THRESH ? 255 : 0;
+          od[idx]   = v;
+          od[idx+1] = v;
+          od[idx+2] = v;
+          od[idx+3] = 255;
+        }
+      }
+
+      eCtx.putImageData(out, 0, 0);
+
+      /* draw scaled to full output canvas */
+      actx.fillStyle = '#000';
+      actx.fillRect(0, 0, CW, CH);
+      actx.imageSmoothingEnabled = false;
+      actx.drawImage(eCV, 0, 0, CW, CH);
+
+      /* neon green tint using composite */
+      actx.save();
+      actx.globalCompositeOperation = 'multiply';
+      actx.fillStyle = '#000';
+      actx.fillRect(0, 0, CW, CH);
+      actx.restore();
+
+      /* Re-draw with neon colour */
+      actx.save();
+      actx.globalCompositeOperation = 'source-over';
+      /* tint white edges to neon */
+      actx.drawImage(eCV, 0, 0, CW, CH);
+      actx.globalCompositeOperation = 'source-atop';
+      actx.fillStyle = '#00ffcc';
+      actx.fillRect(0, 0, CW, CH);
+      actx.restore();
+
+      /* final: draw the edge data cleanly with colour */
+      actx.fillStyle = '#000';
+      actx.fillRect(0, 0, CW, CH);
+
+      /* draw edges white then recolour */
+      eCtx.putImageData(out, 0, 0);
+      const tempCV = document.createElement('canvas');
+      tempCV.width = EW; tempCV.height = EH;
+      const tCtx = tempCV.getContext('2d');
+      tCtx.putImageData(out, 0, 0);
+      actx.drawImage(tempCV, 0, 0, CW, CH);
+
+      /* colour overlay: make edges glow neon green */
+      actx.save();
+      actx.globalCompositeOperation = 'source-in';
+      actx.fillStyle = '#00ffcc';
+      actx.fillRect(0, 0, CW, CH);
+      actx.restore();
+    };
+
+    /* ═══════════════════════════════════════════════
+       ASCII / Color frame
+    ═══════════════════════════════════════════════ */
+    const asciiFrame = () => {
+      sCtx.drawImage(vid, 0, 0, COLS, ROWS);
+      const d = sCtx.getImageData(0, 0, COLS, ROWS).data;
+      actx.fillStyle = '#000';
+      actx.fillRect(0, 0, CW, CH);
+      actx.font = `${FS}px 'Share Tech Mono',monospace`;
+      actx.textBaseline = 'top';
+      for (let row = 0; row < ROWS; row++) {
+        for (let col = 0; col < COLS; col++) {
+          const i = (row * COLS + col) * 4;
+          const b = (d[i]*.299 + d[i+1]*.587 + d[i+2]*.114) / 255;
+          actx.fillStyle = mode === 'color'
+            ? `rgb(${d[i]},${d[i+1]},${d[i+2]})`
+            : '#00ffcc';
+          actx.fillText(RAMP[Math.floor(b * (RAMP.length-1))], col*CHAR_W, row*LINE_H);
+        }
+      }
+    };
+
+    /* ── main loop ── */
     const frame = () => {
       if (vid.readyState >= 2) {
-        sCtx.drawImage(vid, 0, 0, COLS, ROWS);
-        const d = sCtx.getImageData(0, 0, COLS, ROWS).data;
-        actx.fillStyle = '#000';
-        actx.fillRect(0, 0, CW, CH);
-        actx.font = `${FS}px 'Share Tech Mono',monospace`;
-        actx.textBaseline = 'top';
-        for (let row = 0; row < ROWS; row++) {
-          for (let col = 0; col < COLS; col++) {
-            const i = (row * COLS + col) * 4;
-            const b = (d[i] * .299 + d[i+1] * .587 + d[i+2] * .114) / 255;
-            actx.fillStyle = colorMode ? `rgb(${d[i]},${d[i+1]},${d[i+2]})` : '#00ffcc';
-            actx.fillText(RAMP[Math.floor(b * (RAMP.length - 1))], col * CHAR_W, row * LINE_H);
-          }
-        }
+        if (mode === 'edge') edgeFrame();
+        else                 asciiFrame();
       }
       raf2 = requestAnimationFrame(frame);
     };
 
+    /* ── button wiring ── */
+    const setMode = (m, label) => {
+      mode = m;
+      modeLabel.textContent = label;
+      haptic('light');
+      ['asc-ascii','asc-clr','asc-edge'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+      });
+      const idMap = { ascii:'asc-ascii', color:'asc-clr', edge:'asc-edge' };
+      const el = document.getElementById(idMap[m]);
+      if (el) el.classList.add('active');
+    };
+
+    document.getElementById('asc-ascii').onclick = () => setMode('ascii', 'ASCII MODE');
+    document.getElementById('asc-clr').onclick   = () => setMode('color', 'COLOR MODE');
+    document.getElementById('asc-edge').onclick   = () => setMode('edge',  'EDGE DETECTION');
+
+    /* ── save ── */
     document.getElementById('asc-snap').onclick = () => {
       const fl = document.createElement('div');
-      fl.style.cssText = 'position:absolute;inset:0;background:#fff;pointer-events:none;z-index:5;animation:flash .35s ease forwards;';
+      fl.style.cssText = 'position:absolute;inset:0;background:#fff;pointer-events:none;z-index:5;animation:asc-flash .35s ease forwards;';
       area.appendChild(fl);
       setTimeout(() => fl.remove(), 400);
       ascCV.toBlob(async blob => {
-        const file = new File([blob], `ascii-${Date.now()}.png`, { type:'image/png' });
+        const file = new File([blob], `ipocket-cam-${Date.now()}.png`, { type:'image/png' });
         try {
           if (navigator.canShare && navigator.canShare({ files:[file] })) {
-            await navigator.share({ files:[file], title:'ASCII Photo' });
+            await navigator.share({ files:[file], title:'iPOCKET Camera' });
           } else {
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = file.name;
-            a.click();
+            a.download = file.name; a.click();
             setTimeout(() => URL.revokeObjectURL(a.href), 3000);
           }
         } catch(e) {}
       }, 'image/png');
     };
 
-    document.getElementById('asc-clr').onclick = () => {
-      colorMode = !colorMode;
-      haptic('light');
-      const btn = document.getElementById('asc-clr');
-      btn.classList.toggle('active', colorMode);
-      btn.textContent = colorMode ? '🌿 Green' : '🎨 Color';
-    };
-
+    /* ── camera ── */
     navigator.mediaDevices.getUserMedia({
       video: { facingMode:'environment', width:{ ideal:1280 }, height:{ ideal:720 } }
     }).then(s => {
@@ -104,7 +280,7 @@ function initASCII() {
       actx.fillStyle = '#00ffcc';
       actx.font = `bold 14px 'Orbitron',sans-serif`;
       actx.textAlign = 'center'; actx.textBaseline = 'middle';
-      actx.fillText('CAMERA DENIED', CW / 2, CH / 2);
+      actx.fillText('CAMERA DENIED', CW/2, CH/2);
       tb.style.display = 'none';
     });
 
