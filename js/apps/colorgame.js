@@ -353,313 +353,226 @@ function initColorGame() {
     }, 1000);
   };
 
-  /* ── RECALL SCREEN ── */
+  /* ── RECALL SCREEN — original vertical sliders ── */
   const showRecall = () => {
     content.innerHTML = '';
-    cs = { h: 180, s: 60, l: 50 };
-    hueVal = 180; satVal = 60; litVal = 50;
-    colorSide = null;
+    cs = { h:180, s:60, l:50 };
+    colorSide = null; sTrack = null; lTrack = null;
 
-    const root = document.createElement('div');
-    root.className = 'cg-recall-root';
-    content.appendChild(root);
+    const outer = document.createElement('div');
+    outer.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:row;background:#050508;overflow:hidden;position:relative;';
+    content.appendChild(outer);
 
-    // ── Top: side-by-side swatches (original hidden vs guess) ──
-    const previewH = Math.round(content.offsetHeight * 0.28);
-    const previewRow = document.createElement('div');
-    previewRow.className = 'cg-recall-preview-row';
-    previewRow.style.height = previewH + 'px';
-    root.appendChild(previewRow);
+    /* ── Left: vertical sliders column ── */
+    const slCol = document.createElement('div');
+    slCol.style.cssText = 'display:flex;flex-direction:row;align-items:stretch;padding:' + (SA.t+10) + 'px 0 80px;gap:10px;flex-shrink:0;width:72px;';
+    outer.appendChild(slCol);
 
-    // Left: original (hidden behind ? overlay)
-    const origHalf = document.createElement('div');
-    origHalf.className = 'cg-preview-half';
-    origHalf.style.cssText = 'flex:1;position:relative;overflow:hidden;';
-    const origSwatch = document.createElement('div');
-    origSwatch.style.cssText = 'width:100%;height:100%;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;';
-    origSwatch.innerHTML = `
-      <div style="font-size:2.2rem;opacity:.3;">?</div>
-      <div style="font-size:.44rem;color:rgba(255,255,255,.2);letter-spacing:.1em;text-transform:uppercase;">Target</div>`;
-    origHalf.appendChild(origSwatch);
-    previewRow.appendChild(origHalf);
+    /* ── Right: colour preview ── */
+    const cSide = document.createElement('div');
+    cSide.style.cssText = 'flex:1;transition:background .06s;position:relative;';
+    cSide.style.background = `hsl(180,60%,50%)`;
+    outer.appendChild(cSide);
+    colorSide = cSide;
 
-    // Divider
-    const div = document.createElement('div');
-    div.style.cssText = 'width:2px;background:rgba(255,255,255,.06);flex-shrink:0;';
-    previewRow.appendChild(div);
+    /* Round label on colour side */
+    const info = document.createElement('div');
+    info.style.cssText = 'position:absolute;top:' + (SA.t+14) + 'px;right:16px;font-family:"Share Tech Mono",monospace;font-size:.58rem;color:rgba(255,255,255,.45);letter-spacing:.1em;';
+    info.textContent = (currentIdx+1) + ' / ' + N;
+    cSide.appendChild(info);
 
-    // Right: guess preview (live)
-    const guessHalf = document.createElement('div');
-    guessHalf.className = 'cg-preview-half';
-    guessHalf.style.cssText = 'flex:1;position:relative;overflow:hidden;';
-    const guessSwatch = document.createElement('div');
-    guessSwatch.style.cssText = 'width:100%;height:100%;transition:background .08s;display:flex;align-items:flex-end;justify-content:center;padding-bottom:10px;';
-    guessSwatch.style.background = hsl(180, 60, 50);
-    guessSwatch.innerHTML = `<div style="font-size:.44rem;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;">Your Guess</div>`;
-    guessHalf.appendChild(guessSwatch);
-    previewRow.appendChild(guessHalf);
-    colorSide = guessSwatch;
+    /* Instruction hint */
+    const hint = document.createElement('div');
+    hint.style.cssText = 'position:absolute;bottom:90px;left:0;right:0;text-align:center;font-family:"Share Tech Mono",monospace;font-size:.52rem;color:rgba(255,255,255,.2);letter-spacing:.1em;';
+    hint.textContent = 'Match the memorized color';
+    cSide.appendChild(hint);
 
-    // ── Sliders area ──
-    const slidersArea = document.createElement('div');
-    slidersArea.className = 'cg-sliders-area';
-    root.appendChild(slidersArea);
+    /* Progress dots on colour side */
+    const dots = document.createElement('div');
+    dots.style.cssText = 'position:absolute;bottom:26px;left:0;right:0;display:flex;gap:10px;justify-content:center;';
+    for (let i=0;i<N;i++) {
+      const d=document.createElement('div');
+      d.style.cssText='width:9px;height:9px;border-radius:50%;background:'+(i<currentIdx?'rgba(0,255,204,.45)':i===currentIdx?'#00ffcc':'rgba(255,255,255,.15)');
+      dots.appendChild(d);
+    }
+    cSide.appendChild(dots);
 
-    const updateAll = () => {
-      if (colorSide) colorSide.style.background = hsl(hueVal, satVal, litVal);
-      cs.h = hueVal; cs.s = satVal; cs.l = litVal;
-      // Update sat/lit track gradients
-      if (sTrack) sTrack.style.background = `linear-gradient(to right,${hsl(hueVal,0,litVal)},${hsl(hueVal,100,litVal)})`;
-      if (lTrack) lTrack.style.background = `linear-gradient(to right,${hsl(hueVal,satVal,10)},${hsl(hueVal,satVal,90)})`;
+    const updateVisuals = () => {
+      if (colorSide) colorSide.style.background = `hsl(${cs.h},${cs.s}%,${cs.l}%)`;
+      if (sTrack) sTrack.style.background = `linear-gradient(to bottom,hsl(${cs.h},100%,${cs.l}%),hsl(${cs.h},0%,${cs.l}%))`;
+      if (lTrack) lTrack.style.background = `linear-gradient(to bottom,hsl(${cs.h},${cs.s}%,90%),hsl(${cs.h},${cs.s}%,10%))`;
     };
 
-    const makeHorizSlider = (parent, getGrad, min, max, initVal, onChange) => {
-      const row = document.createElement('div');
-      row.className = 'cg-slider-row';
-      parent.appendChild(row);
+    const makeSlider = (getInitGrad, min, max, initVal, onChange) => {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;flex:1;padding:6px 0;gap:6px;';
+      slCol.appendChild(wrap);
 
       const track = document.createElement('div');
-      track.className = 'cg-htrack';
-      track.style.background = getGrad();
+      track.style.cssText = 'flex:1;width:28px;border-radius:14px;position:relative;cursor:pointer;background:'+getInitGrad()+';box-shadow:0 2px 8px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.08);';
       const knob = document.createElement('div');
-      knob.className = 'cg-hknob';
+      knob.style.cssText = 'position:absolute;left:50%;transform:translateX(-50%);width:28px;height:28px;border-radius:50%;background:#fff;border:3px solid rgba(0,0,0,.25);box-shadow:0 3px 12px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.2);cursor:grab;touch-action:none;';
       track.appendChild(knob);
-      row.appendChild(track);
+      wrap.appendChild(track);
 
       let val = initVal;
       const setKnob = () => {
-        const pct = (val - min) / (max - min);
-        knob.style.left = `calc(${pct*100}% )`;
+        const pct = (1-(val-min)/(max-min))*100;
+        knob.style.top = `calc(${pct}% - 14px)`;
       };
       setKnob();
 
-      const setVal = clientX => {
+      const setVal = clientY => {
         const r = track.getBoundingClientRect();
-        const pct = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
-        val = Math.round(min + pct * (max - min));
+        const pct = Math.max(0,Math.min(1,(clientY-r.top)/r.height));
+        val = Math.round(min+(1-pct)*(max-min));
         setKnob(); onChange(val);
       };
-
-      track.addEventListener('touchstart', e => { e.preventDefault(); setVal(e.touches[0].clientX); }, {passive:false});
-      track.addEventListener('touchmove',  e => { e.preventDefault(); setVal(e.touches[0].clientX); }, {passive:false});
-      track.addEventListener('mousedown',  e => {
-        const mv = e2 => setVal(e2.clientX);
-        const up = () => { document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); };
-        document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up); setVal(e.clientX);
+      track.addEventListener('touchstart',e=>{e.preventDefault();setVal(e.touches[0].clientY);},{passive:false});
+      track.addEventListener('touchmove', e=>{e.preventDefault();setVal(e.touches[0].clientY);},{passive:false});
+      track.addEventListener('mousedown', e=>{
+        const mv=e2=>setVal(e2.clientY);
+        const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);};
+        document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);setVal(e.clientY);
       });
       return track;
     };
 
-    // Hue row
-    const hRow = document.createElement('div');
-    hRow.className = 'cg-slider-row';
-    hRow.style.cssText = 'flex:1;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid rgba(255,255,255,.04);';
-    slidersArea.appendChild(hRow);
-    const hLabel = document.createElement('div');
-    hLabel.innerHTML = `<div style="font-size:.44rem;color:rgba(255,255,255,.35);letter-spacing:.1em;text-transform:uppercase;writing-mode:vertical-rl;transform:rotate(180deg);">HUE</div>`;
-    hRow.appendChild(hLabel);
-    const hTrackWrap = document.createElement('div');
-    hTrackWrap.style.cssText = 'flex:1;display:flex;align-items:center;height:100%;';
-    hRow.appendChild(hTrackWrap);
-    const htrack = document.createElement('div');
-    htrack.className = 'cg-htrack';
-    htrack.style.cssText = 'flex:1;height:38px;border-radius:19px;position:relative;background:linear-gradient(to right,hsl(0,80%,55%),hsl(30,80%,55%),hsl(60,80%,55%),hsl(90,80%,55%),hsl(120,80%,55%),hsl(150,80%,55%),hsl(180,80%,55%),hsl(210,80%,55%),hsl(240,80%,55%),hsl(270,80%,55%),hsl(300,80%,55%),hsl(330,80%,55%),hsl(360,80%,55%));box-shadow:0 2px 8px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.08);cursor:pointer;';
-    const hknob = document.createElement('div');
-    hknob.className = 'cg-hknob';
-    hknob.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:50%;background:hsl(180,60%,50%);border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.5);cursor:grab;touch-action:none;';
-    htrack.appendChild(hknob);
-    hTrackWrap.appendChild(htrack);
+    // Hue slider
+    makeSlider(
+      ()=>`linear-gradient(to bottom,hsl(360,80%,50%),hsl(300,80%,50%),hsl(240,80%,50%),hsl(180,80%,50%),hsl(120,80%,50%),hsl(60,80%,50%),hsl(0,80%,50%))`,
+      0, 360, 180, v=>{ cs.h=v; updateVisuals(); }
+    );
 
-    const setHue = clientX => {
-      const r = htrack.getBoundingClientRect();
-      const pct = Math.max(0,Math.min(1,(clientX-r.left)/r.width));
-      hueVal = Math.round(pct*360);
-      hknob.style.left = (pct*100)+'%';
-      hknob.style.background = hsl(hueVal,70,55);
-      updateAll();
-    };
-    htrack.addEventListener('touchstart',e=>{e.preventDefault();setHue(e.touches[0].clientX);},{passive:false});
-    htrack.addEventListener('touchmove', e=>{e.preventDefault();setHue(e.touches[0].clientX);},{passive:false});
-    htrack.addEventListener('mousedown', e=>{
-      const mv=e2=>setHue(e2.clientX);
-      const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);};
-      document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);setHue(e.clientX);
-    });
+    // Saturation slider
+    const sT = makeSlider(
+      ()=>`linear-gradient(to bottom,hsl(${cs.h},100%,${cs.l}%),hsl(${cs.h},0%,${cs.l}%))`,
+      0, 100, 60, v=>{ cs.s=v; updateVisuals(); }
+    );
+    sTrack = sT;
 
-    // Sat row
-    const sRow = document.createElement('div');
-    sRow.style.cssText = 'flex:1;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid rgba(255,255,255,.04);';
-    slidersArea.appendChild(sRow);
-    const sLabel = document.createElement('div');
-    sLabel.innerHTML = `<div style="font-size:.44rem;color:rgba(255,255,255,.35);letter-spacing:.1em;text-transform:uppercase;writing-mode:vertical-rl;transform:rotate(180deg);">SAT</div>`;
-    sRow.appendChild(sLabel);
-    const sWrap = document.createElement('div');
-    sWrap.style.cssText = 'flex:1;display:flex;align-items:center;height:100%;';
-    sRow.appendChild(sWrap);
-    const strack = document.createElement('div');
-    strack.style.cssText = 'flex:1;height:38px;border-radius:19px;position:relative;background:'+`linear-gradient(to right,${hsl(180,0,50)},${hsl(180,100,50)})`+';box-shadow:0 2px 8px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.08);cursor:pointer;';
-    const sknob = document.createElement('div');
-    sknob.className = 'cg-hknob';
-    sknob.style.cssText = 'position:absolute;top:50%;left:60%;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:50%;background:#fff;border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.5);cursor:grab;touch-action:none;';
-    strack.appendChild(sknob);
-    sWrap.appendChild(strack);
-    sTrack = strack;
+    // Lightness slider
+    const lT = makeSlider(
+      ()=>`linear-gradient(to bottom,hsl(${cs.h},${cs.s}%,90%),hsl(${cs.h},${cs.s}%,10%))`,
+      10, 90, 50, v=>{ cs.l=v; updateVisuals(); }
+    );
+    lTrack = lT;
 
-    const setSat = clientX => {
-      const r = strack.getBoundingClientRect();
-      const pct = Math.max(0,Math.min(1,(clientX-r.left)/r.width));
-      satVal = Math.round(pct*100);
-      sknob.style.left = (pct*100)+'%';
-      updateAll();
-    };
-    strack.addEventListener('touchstart',e=>{e.preventDefault();setSat(e.touches[0].clientX);},{passive:false});
-    strack.addEventListener('touchmove', e=>{e.preventDefault();setSat(e.touches[0].clientX);},{passive:false});
-    strack.addEventListener('mousedown', e=>{
-      const mv=e2=>setSat(e2.clientX);
-      const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);};
-      document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);setSat(e.clientX);
-    });
-
-    // Lit row
-    const lRow = document.createElement('div');
-    lRow.style.cssText = 'flex:1;display:flex;align-items:center;gap:10px;padding:0 14px;';
-    slidersArea.appendChild(lRow);
-    const lLabel = document.createElement('div');
-    lLabel.innerHTML = `<div style="font-size:.44rem;color:rgba(255,255,255,.35);letter-spacing:.1em;text-transform:uppercase;writing-mode:vertical-rl;transform:rotate(180deg);">LIT</div>`;
-    lRow.appendChild(lLabel);
-    const lWrap = document.createElement('div');
-    lWrap.style.cssText = 'flex:1;display:flex;align-items:center;height:100%;';
-    lRow.appendChild(lWrap);
-    const ltrack = document.createElement('div');
-    ltrack.style.cssText = 'flex:1;height:38px;border-radius:19px;position:relative;background:'+`linear-gradient(to right,${hsl(180,60,10)},${hsl(180,60,90)})`+';box-shadow:0 2px 8px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.08);cursor:pointer;';
-    const lknob = document.createElement('div');
-    lknob.className = 'cg-hknob';
-    lknob.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:50%;background:#fff;border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.5);cursor:grab;touch-action:none;';
-    ltrack.appendChild(lknob);
-    lWrap.appendChild(ltrack);
-    lTrack = ltrack;
-
-    const setLit = clientX => {
-      const r = ltrack.getBoundingClientRect();
-      const pct = Math.max(0,Math.min(1,(clientX-r.left)/r.width));
-      litVal = Math.round(10 + pct*80);
-      lknob.style.left = ((litVal-10)/80*100)+'%';
-      updateAll();
-    };
-    ltrack.addEventListener('touchstart',e=>{e.preventDefault();setLit(e.touches[0].clientX);},{passive:false});
-    ltrack.addEventListener('touchmove', e=>{e.preventDefault();setLit(e.touches[0].clientX);},{passive:false});
-    ltrack.addEventListener('mousedown', e=>{
-      const mv=e2=>setLit(e2.clientX);
-      const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);};
-      document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);setLit(e.clientX);
-    });
-
-    // ── Bottom bar: progress dots + submit button ──
-    const bottom = document.createElement('div');
-    bottom.className = 'cg-recall-bottom';
-    root.appendChild(bottom);
-
-    const dotRow = document.createElement('div');
-    dotRow.className = 'cg-progress-dots';
-    for (let i=0;i<N;i++) {
-      const d = document.createElement('div');
-      d.className = 'cg-dot';
-      d.style.cssText = 'width:9px;height:9px;border-radius:50%;background:' + (i<currentIdx?'rgba(0,255,204,.45)':i===currentIdx?'#00ffcc':'rgba(255,255,255,.15)');
-      dotRow.appendChild(d);
-    }
-    bottom.appendChild(dotRow);
-
+    /* Next / Results button — fixed to bottom-right of colour side */
     const nextBtn = document.createElement('button');
     nextBtn.style.cssText = `
+      position:fixed;bottom:${SA.b+18}px;right:18px;z-index:200;
       font-family:'Orbitron',sans-serif;font-weight:900;font-size:.72rem;
       letter-spacing:.12em;text-transform:uppercase;
       color:#030f08;background:linear-gradient(135deg,#00ffcc,#00cc99);
       border:none;padding:14px 28px;border-radius:50px;cursor:pointer;
       box-shadow:0 5px 0 #007744,0 6px 20px rgba(0,255,150,.35);
-      -webkit-tap-highlight-color:transparent;
-      transition:transform .1s,box-shadow .1s;`;
+      -webkit-tap-highlight-color:transparent;`;
     nextBtn.textContent = currentIdx < N-1 ? 'Next →' : 'Results →';
-    nextBtn.onpointerdown = () => { nextBtn.style.transform='scale(.96) translateY(3px)'; nextBtn.style.boxShadow='0 2px 0 #007744'; };
-    nextBtn.onpointerup = () => { nextBtn.style.transform=''; nextBtn.style.boxShadow='0 5px 0 #007744,0 6px 20px rgba(0,255,150,.35)'; };
     nextBtn.onclick = () => {
-      scores.push({c:colors[currentIdx], g:{h:hueVal,s:satVal,l:litVal}});
+      scores.push({c:colors[currentIdx], g:{...cs}});
       currentIdx++;
       if (currentIdx >= N) showResults(); else showMemorize();
     };
-    bottom.appendChild(nextBtn);
+    outer.appendChild(nextBtn);
   };
 
-  /* ── RESULTS SCREEN ── */
+  /* ── RESULTS SCREEN — full-screen, accurate scoring ── */
   const showResults = () => {
     content.innerHTML = '';
+
+    /* Score is 0-10 per colour based on perceptual distance.
+       Use tighter hue weight so small hue errors don't tank the score. */
+    const scoreColor = (c, g) => {
+      const dh = Math.min(Math.abs(c.h-g.h), 360-Math.abs(c.h-g.h)); // 0-180
+      const ds = Math.abs(c.s-g.s);   // 0-100
+      const dl = Math.abs(c.l-g.l);   // 0-80 (range 10-90)
+      // Normalise each to 0-1 then weight
+      const nh = dh/180, ns = ds/100, nl = dl/80;
+      const err = nh*0.5 + ns*0.28 + nl*0.22; // weighted combined error
+      return Math.max(0, Math.round((1-err)*10));
+    };
+
     const root = document.createElement('div');
-    root.className = 'cg-results-root';
+    root.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column;background:#050508;overflow:hidden;box-sizing:border-box;';
     content.appendChild(root);
 
-    // Top bar
-    const topBar = document.createElement('div');
-    topBar.style.cssText = 'padding:' + (SA.t+12) + 'px 20px 14px;font-size:.54rem;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.25);flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.06);';
-    topBar.textContent = '// RESULTS //';
-    root.appendChild(topBar);
+    /* ── Score cards (flex:1, equal height) ── */
+    const cards = document.createElement('div');
+    cards.style.cssText = 'flex:1;display:flex;flex-direction:column;min-height:0;padding:' + (SA.t+8) + 'px 0 0;';
+    root.appendChild(cards);
 
     let total = 0;
-    scores.forEach((s,i) => {
-      const d = dist(s.c, s.g);
-      const pts = Math.max(0,Math.round((1-d)*10));
+    const rowData = scores.map((s2, i) => {
+      const pts = scoreColor(s2.c, s2.g);
       total += pts;
+      const dh = Math.min(Math.abs(s2.c.h-s2.g.h),360-Math.abs(s2.c.h-s2.g.h));
+      const ds = Math.abs(s2.c.s-s2.g.s);
       const grade = pts>=9?['PERFECT','#00ffcc']:pts>=7?['GREAT','#69ff47']:pts>=5?['GOOD','#ffeb3b']:pts>=3?['OK','#ff9800']:['MISS','#ff6d6d'];
-      const row = document.createElement('div');
-      row.className = 'cg-res-row';
-      row.style.animation = `cg-score-in .3s ${i*0.07}s both`;
-      row.innerHTML = `
-        <div class="cg-swatch-pair">
-          <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
-            <div class="cg-sw" style="background:${hsl2hex(s.c.h,s.c.s,s.c.l)}"></div>
-            <div style="font-size:.38rem;color:rgba(255,255,255,.25);letter-spacing:.06em;">REAL</div>
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
-            <div class="cg-sw" style="background:${hsl2hex(s.g.h,s.g.s,s.g.l)}"></div>
-            <div style="font-size:.38rem;color:rgba(255,255,255,.25);letter-spacing:.06em;">YOURS</div>
-          </div>
-        </div>
-        <div class="cg-res-info" style="flex:1;">
-          <div class="cg-res-score" style="color:${grade[1]}">${pts}/10 — ${grade[0]}</div>
-          <div class="cg-res-lbl">Color ${i+1} · Hue off by ${Math.min(Math.abs(s.c.h-s.g.h),360-Math.abs(s.c.h-s.g.h))}° · Sat off by ${Math.abs(s.c.s-s.g.s)}%</div>
-        </div>
-        <div style="font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:900;color:${grade[1]};text-shadow:0 0 12px ${grade[1]}44;">${pts}</div>`;
-      root.appendChild(row);
+      return {pts, dh, ds, grade, c:s2.c, g:s2.g, i};
     });
 
-    // Total score
-    const pct = Math.round(total/N/10*100);
-    const msg = pct>=90?'PERFECT 🎯':pct>=70?'GREAT 🔥':pct>=50?'GOOD 👍':pct>=30?'PRACTICE 😅':'KEEP TRYING 😬';
-    const totEl = document.createElement('div');
-    totEl.style.cssText = 'text-align:center;padding:24px 20px;flex-shrink:0;animation:cg-score-in .4s .35s both;';
-    totEl.innerHTML = `
-      <div style="font-family:'Orbitron',sans-serif;font-size:2.8rem;font-weight:900;
-        color:#00ffcc;text-shadow:0 0 30px rgba(0,255,204,.5);letter-spacing:.1em;">
-        ${total}/${N*10}
-      </div>
-      <div style="font-family:'Share Tech Mono',monospace;font-size:.72rem;
-        color:rgba(255,255,255,.4);letter-spacing:.18em;text-transform:uppercase;margin-top:6px;">
-        ${msg}
-      </div>`;
-    root.appendChild(totEl);
+    rowData.forEach(({pts,dh,ds,grade,c,g,i}) => {
+      const row = document.createElement('div');
+      row.style.cssText = `
+        flex:1;display:flex;align-items:center;gap:12px;padding:0 16px;
+        border-bottom:1px solid rgba(255,255,255,.05);
+        animation:cg-score-in .3s ${i*0.06}s both;min-height:0;`;
+      row.innerHTML = `
+        <!-- Swatches -->
+        <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;">
+          <div style="display:flex;gap:3px;">
+            <div style="width:40px;height:40px;border-radius:10px;background:hsl(${c.h},${c.s}%,${c.l}%);box-shadow:0 3px 10px rgba(0,0,0,.5);"></div>
+            <div style="width:40px;height:40px;border-radius:10px;background:hsl(${g.h},${g.s}%,${g.l}%);box-shadow:0 3px 10px rgba(0,0,0,.5);"></div>
+          </div>
+          <div style="display:flex;gap:3px;">
+            <div style="width:40px;text-align:center;font-size:.32rem;color:rgba(255,255,255,.22);letter-spacing:.06em;">REAL</div>
+            <div style="width:40px;text-align:center;font-size:.32rem;color:rgba(255,255,255,.22);letter-spacing:.06em;">YOURS</div>
+          </div>
+        </div>
+        <!-- Info -->
+        <div style="flex:1;min-width:0;">
+          <div style="font-family:'Orbitron',sans-serif;font-size:.78rem;font-weight:900;color:${grade[1]};letter-spacing:.04em;">${pts}/10 — ${grade[0]}</div>
+          <div style="font-size:.46rem;color:rgba(255,255,255,.28);letter-spacing:.05em;margin-top:3px;">Color ${i+1} · H ±${dh}° · S ±${ds}%</div>
+          <!-- Accuracy bar -->
+          <div style="margin-top:6px;height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;">
+            <div style="height:100%;width:${pts*10}%;background:${grade[1]};border-radius:2px;transition:width .6s ${i*0.08}s;box-shadow:0 0 6px ${grade[1]}88;"></div>
+          </div>
+        </div>
+        <!-- Score number -->
+        <div style="font-family:'Orbitron',sans-serif;font-size:1.5rem;font-weight:900;color:${grade[1]};text-shadow:0 0 16px ${grade[1]}66;flex-shrink:0;width:24px;text-align:right;">${pts}</div>`;
+      cards.appendChild(row);
+    });
 
+    /* ── Bottom: total score panel ── */
+    const pct = Math.round(total/N/10*100);
+    const msg  = pct>=90?'PERFECT 🎯':pct>=70?'GREAT 🔥':pct>=50?'GOOD 👍':pct>=30?'PRACTICE 😅':'KEEP TRYING 😬';
+    const botH = 200;
+    const bot = document.createElement('div');
+    bot.style.cssText = `flex-shrink:0;height:${botH}px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:rgba(255,255,255,.02);border-top:1px solid rgba(255,255,255,.06);padding-bottom:${SA.b+8}px;`;
+    bot.innerHTML = `
+      <div style="font-family:'Orbitron',sans-serif;font-size:2.6rem;font-weight:900;
+        color:#00ffcc;text-shadow:0 0 28px rgba(0,255,204,.55);letter-spacing:.08em;
+        animation:cg-score-in .4s .32s both;">${total}/${N*10}</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:.66rem;
+        color:rgba(255,255,255,.4);letter-spacing:.18em;text-transform:uppercase;">${msg}</div>`;
+    root.appendChild(bot);
+
+    /* Play again button overlaid on score panel */
     const again = document.createElement('button');
     again.style.cssText = `
-      display:block;margin:0 auto 32px;
-      font-family:'Orbitron',sans-serif;font-weight:900;font-size:.82rem;
+      position:fixed;bottom:${SA.b+22}px;right:18px;
+      font-family:'Orbitron',sans-serif;font-weight:900;font-size:.72rem;
       letter-spacing:.12em;text-transform:uppercase;
       color:#030f08;background:linear-gradient(135deg,#00ffcc,#00cc99);
-      border:none;padding:16px 48px;border-radius:50px;cursor:pointer;
-      box-shadow:0 5px 0 #007744,0 6px 20px rgba(0,255,150,.35);
-      -webkit-tap-highlight-color:transparent;flex-shrink:0;`;
+      border:none;padding:14px 24px;border-radius:50px;cursor:pointer;
+      box-shadow:0 5px 0 #007744,0 6px 20px rgba(0,255,150,.4);
+      -webkit-tap-highlight-color:transparent;z-index:100;`;
     again.textContent = 'Play Again →';
     again.onclick = () => { colors=genColors(); scores=[]; currentIdx=0; showMemorize(); };
     root.appendChild(again);
   };
 
-  showStart();
+    showStart();
   return () => clearInterval(timerInt);
 }
