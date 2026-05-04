@@ -43,12 +43,12 @@ function initColorGame() {
       .cg-mem-root {
         width:100%; height:100%; display:flex; flex-direction:column;
         align-items:center; justify-content:center; position:relative;
-        transition:background .3s;
+        transition:background .3s; overflow:hidden;
       }
       .cg-mem-hud {
         position:absolute; top:0; left:0; right:0;
         display:flex; justify-content:space-between; align-items:center;
-        padding:12px 20px; background:rgba(0,0,0,.18);
+        padding-top:calc(var(--st, 59px) + 10px); padding-left:20px; padding-right:20px; padding-bottom:12px; background:rgba(0,0,0,.18);
       }
       .cg-timer-ring {
         position:relative; width:96px; height:96px; flex-shrink:0;
@@ -365,12 +365,12 @@ function initColorGame() {
 
     /* ── Left: vertical sliders column ── */
     const slCol = document.createElement('div');
-    slCol.style.cssText = 'display:flex;flex-direction:row;align-items:stretch;padding:' + (SA.t+10) + 'px 0 80px;gap:10px;flex-shrink:0;width:72px;';
+    slCol.style.cssText = 'display:flex;flex-direction:row;align-items:stretch;padding:' + (SA.t+10) + 'px 8px 80px 8px;gap:12px;flex-shrink:0;width:108px;order:2;';
     outer.appendChild(slCol);
 
     /* ── Right: colour preview ── */
     const cSide = document.createElement('div');
-    cSide.style.cssText = 'flex:1;transition:background .06s;position:relative;';
+    cSide.style.cssText = 'flex:1;transition:background .06s;position:relative;order:1;';
     cSide.style.background = `hsl(180,60%,50%)`;
     outer.appendChild(cSide);
     colorSide = cSide;
@@ -405,13 +405,13 @@ function initColorGame() {
 
     const makeSlider = (getInitGrad, min, max, initVal, onChange) => {
       const wrap = document.createElement('div');
-      wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;flex:1;padding:6px 0;gap:6px;';
+      wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;flex:1;padding:8px 0;gap:6px;';
       slCol.appendChild(wrap);
 
       const track = document.createElement('div');
-      track.style.cssText = 'flex:1;width:28px;border-radius:14px;position:relative;cursor:pointer;background:'+getInitGrad()+';box-shadow:0 2px 8px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.08);';
+      track.style.cssText = 'flex:1;width:40px;border-radius:20px;position:relative;cursor:pointer;background:'+getInitGrad()+';box-shadow:0 2px 10px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.1);';
       const knob = document.createElement('div');
-      knob.style.cssText = 'position:absolute;left:50%;transform:translateX(-50%);width:28px;height:28px;border-radius:50%;background:#fff;border:3px solid rgba(0,0,0,.25);box-shadow:0 3px 12px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.2);cursor:grab;touch-action:none;';
+      knob.style.cssText = 'position:absolute;left:50%;transform:translateX(-50%);width:42px;height:42px;border-radius:50%;background:#fff;border:3px solid rgba(0,0,0,.3);box-shadow:0 4px 16px rgba(0,0,0,.6),0 0 0 3px rgba(255,255,255,.25);cursor:grab;touch-action:none;';
       track.appendChild(knob);
       wrap.appendChild(track);
 
