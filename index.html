@@ -13,7 +13,7 @@
 </head>
 <body>
 
-<!-- Safe area top patcher — runs before anything else -->
+<!-- Safe area top patcher -->
 <script>
 (function(){
   var p=document.createElement('div');
@@ -25,9 +25,7 @@
     root.style.setProperty('--st',Math.max(r.top,59)+'px');
     root.style.setProperty('--safe-top',Math.max(r.top,59)+'px');
   }
-  apply();
-  setTimeout(apply,80);
-  setTimeout(apply,400);
+  apply(); setTimeout(apply,80); setTimeout(apply,400);
   window.addEventListener('resize',apply);
   window.addEventListener('orientationchange',function(){setTimeout(apply,300);});
 }());
@@ -37,9 +35,10 @@
 <div id="home">
   <div id="logo-wrap">
     <div id="title" data-text="iPOCKET">iPOCKET</div>
-    <div id="tagline">v6.0 — Your Pocket OS</div>
+    <div id="tagline">v7.0 — Your Pocket OS</div>
   </div>
   <div id="home-date"></div>
+  <div id="xp-badge-wrap"></div>
   <div id="grid"></div>
 </div>
 
@@ -49,8 +48,10 @@
   <div id="swipe-hint"></div>
 </div>
 
-<!-- Core engine (must load first) -->
+<!-- Core engine -->
 <script src="js/core.js"></script>
+<!-- Global state / XP / achievements / toasts -->
+<script src="js/state.js"></script>
 
 <!-- All apps -->
 <script src="js/apps/clock.js"></script>
@@ -76,9 +77,29 @@
 <script src="js/apps/sports.js"></script>
 <script src="js/apps/casino.js"></script>
 <script src="js/apps/pacman.js"></script>
+<!-- New v7 apps -->
+<script src="js/apps/assistant.js"></script>
+<script src="js/apps/terminal.js"></script>
+<script src="js/apps/filesystem.js"></script>
+<script src="js/apps/appstore.js"></script>
 
-<!-- Boot (runs after all apps are defined) -->
+<!-- Boot screen -->
+<script src="js/bootscreen.js"></script>
+
+<!-- Home screen logic (runs after all apps defined) -->
 <script src="js/boot.js"></script>
+
+<!-- Run boot animation then show home -->
+<script>
+  window.addEventListener('DOMContentLoaded', function() {
+    // Hide home during boot
+    document.getElementById('home').style.opacity = '0';
+    runBootScreen(function() {
+      document.getElementById('home').style.transition = 'opacity .5s ease';
+      document.getElementById('home').style.opacity = '1';
+    });
+  });
+</script>
 
 </body>
 </html>
