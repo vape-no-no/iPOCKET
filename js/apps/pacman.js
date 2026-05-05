@@ -534,7 +534,7 @@ function initPacman() {
       dyingTimer-=dt;
       if (dyingTimer<=0) {
         lives--;
-        if (lives<=0) { gameState='over'; }
+        if (lives<=0) { gameState='over'; if (window.POS) POS.submitScore('pacman', score); }
         else { resetPositions(); gameState='title'; }
         updateHUD();
       }

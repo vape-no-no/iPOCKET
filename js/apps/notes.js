@@ -122,6 +122,7 @@ function initNotes() {
 
   const newNote = () => {
     haptic('medium');
+    if (window.POS) POS.markFlag('noteMade');
     const note = { title:'', body:'', updated: Date.now() };
     notes.unshift(note);
     save(notes);

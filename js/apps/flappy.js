@@ -63,7 +63,7 @@ function initFlappy() {
         if (!p.passed && p.x + PW < BX) { p.passed = true; score++; }
       }
       pipes = pipes.filter(p => p.x > -PW - 10);
-      if (hit()) state = 'dead';
+      if (hit()) { state = 'dead'; if (window.POS) POS.submitScore('flappy', score); }
     }
 
     pipes.forEach(dpipe);
